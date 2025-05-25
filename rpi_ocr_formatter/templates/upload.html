@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}Upload Photos{% endblock %}
+
+{% block head %}
+<style>
+    .camera-feed,
+    .uploaded-image {
+        max-width: 100%;
+        height: auto;
+        border: 1px solid #4a4a4a;
+        margin-bottom: 1rem;
+    }
+    .ocr-output {
+        white-space: pre-wrap; /* Preserve whitespace and newlines */
+        font-family: monospace;
+        background-color: #222; /* Slightly lighter than box background */
+        padding: 1em;
+        border-radius: 4px;
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #4a4a4a;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav class="navbar" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+        <a class="navbar-item" href="{{ url_for('main.index') }}">
+            <h1 class="title is-4 has-text-primary">RPi OCR</h1>
+        </a>
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+        </a>
+    </div>
+    <div id="navbarBasicExample" class="navbar-menu">
+        <div class="navbar-start">
+            <a class="navbar-item is-active" href="{{ url_for('main.upload_page') }}">
+                Upload & Capture
+            </a>
+            <a class="navbar-item" href="{{ url_for('main.manage_text') }}">
+                Manage Texts
+            </a>
+        </div>
+        <div class="navbar-end">
+            <div class="navbar-item">
+                <div class="buttons">
+                    {% if current_user.is_authenticated %}
+                        <span class="navbar-item">Logged in as: <strong>{{ current_user.username }}</strong></span>
+                        <a href="{{ url_for('main.logout') }}" class="button is-primary">
+                            Logout
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('main.register') }}" class="button is-primary">
+                            <strong>Sign up</strong>
+                        </a>
+                        <a href="{{ url_for('main.login') }}" class="button is-light">
+                            Log in
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<section class="section">
+    <div class="container">
+        <h1 class="title">Upload Document or Capture from Camera</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="notification is-{{ 'danger' if category == 'error' else category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="columns">
+            <div class="column">
+                <div class="box">
+                    <h2 class="subtitle">Upload Photo</h2>
+                    <form method="POST" action="{{ url_for('main.process_upload') }}" enctype="multipart/form-data">
+                        <div class="field">
+                            <div class="file is-primary has-name is-fullwidth">
+                                <label class="file-label">
+                                    <input class="file-input" type="file" name="file" accept="image/png, image/jpeg">
+                                    <span class="file-cta">
+                                        <span class="file-icon">
+                                            <i class="fas fa-upload"></i> <!-- Font Awesome icon, ensure it's loaded or use text -->
+                                        </span>
+                                        <span class="file-label">
+                                            Choose a file…
+                                        </span>
+                                    </span>
+                                    <span class="file-name">
+                                        No file uploaded
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="control">
+                                <button type="submit" class="button is-primary is-fullwidth">Upload and Extract Text</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="box">
+                    <h2 class="subtitle">Camera Preview & Capture (WIP)</h2>
+                    <div id="camera-feed-container">
+                         <img src="#" alt="Camera Feed" id="camera-feed" class="camera-feed" style="display:none;"/> 
+                    </div>
+                    <button class="button is-info is-fullwidth" id="start-camera-btn">Start Camera</button>
+                    <button class="button is-success is-fullwidth" id="capture-btn" style="display:none;">Capture Photo</button>
+                </div>
+            </div>
+
+            <div class="column">
+                <div class="box">
+                    <h2 class="subtitle">Extracted Text</h2>
+                    {% if filename %}
+                        <h3 class="subtitle is-6">From: {{ filename }}</h3>
+                    {% endif %}
+                    {% if extracted_text %}
+                        <div class="ocr-output">
+                            {{ extracted_text }}
+                        </div>
+                        <br>
+                        <form method="POST" action="{{ url_for('main.manage_text') }}"> <!-- Placeholder action -->
+                             <input type="hidden" name="text_to_manage" value="{{ extracted_text }}">
+                             <button type="submit" class="button is-link">Process this Text Further</button>
+                        </form>
+                    {% else %}
+                        <p>No text extracted yet. Upload an image or capture from camera.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Navbar burger toggle
+    const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+    $navbarBurgers.forEach(el => {
+        el.addEventListener('click', () => {
+            const target = el.dataset.target;
+            const $target = document.getElementById(target);
+            el.classList.toggle('is-active');
+            $target.classList.toggle('is-active');
+        });
+    });
+
+    // File input name display
+    const fileInput = document.querySelector('.file-input');
+    if (fileInput) {
+        fileInput.onchange = () => {
+            if (fileInput.files.length > 0) {
+                const fileName = document.querySelector('.file-name');
+                fileName.textContent = fileInput.files[0].name;
+            }
+        }
+    }
+
+    // Camera functionality (basic placeholders)
+    const startCameraButton = document.getElementById('start-camera-btn');
+    const captureButton = document.getElementById('capture-btn');
+    const cameraFeed = document.getElementById('camera-feed');
+
+    if (startCameraButton) {
+        startCameraButton.addEventListener('click', async () => {
+            // Placeholder for starting camera - will be replaced with actual camera stream logic
+            cameraFeed.style.display = 'block';
+            cameraFeed.src = "https://via.placeholder.com/640x480.png?text=Camera+Preview+(WIP)"; // Placeholder image
+            startCameraButton.style.display = 'none';
+            captureButton.style.display = 'block';
+            flash('Camera started (placeholder)', 'info'); // This flash won't work directly, needs server-side for Flask flash
+            console.log("Camera start requested (placeholder)");
+        });
+    }
+
+    if (captureButton) {
+        captureButton.addEventListener('click', () => {
+            // Placeholder for capturing photo
+            console.log("Capture photo requested (placeholder)");
+            // Here you would typically grab a frame from the stream,
+            // send it to the server (e.g., via fetch API as a Blob/FormData)
+            // similar to how file upload works.
+            alert("Capture functionality is a work in progress!");
+        });
+    }
+});
+
+// Helper function to show a client-side flash message (alternative to Flask's)
+// This is not integrated with Flask's flashing system but can be used for quick JS feedback
+function clientSideFlash(message, category = 'info') {
+    const container = document.querySelector('.container'); // Adjust selector if needed
+    const notification = document.createElement('div');
+    notification.className = `notification is-${category}`;
+    notification.textContent = message;
+    container.insertBefore(notification, container.firstChild);
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+
+</script>
+{% endblock %} 

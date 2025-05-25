@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Manage Extracted Text{% endblock %}
+
+{% block content %}
+<nav class="navbar" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+        <a class="navbar-item" href="{{ url_for('main.index') }}">
+            <h1 class="title is-4 has-text-primary">RPi OCR</h1>
+        </a>
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+        </a>
+    </div>
+    <div id="navbarBasicExample" class="navbar-menu">
+        <div class="navbar-start">
+            <a class="navbar-item" href="{{ url_for('main.upload_page') }}">
+                Upload & Capture
+            </a>
+            <a class="navbar-item is-active" href="{{ url_for('main.manage_text') }}">
+                Manage Texts
+            </a>
+        </div>
+        <div class="navbar-end">
+            <div class="navbar-item">
+                <div class="buttons">
+                    {% if current_user.is_authenticated %}
+                        <span class="navbar-item">Logged in as: <strong>{{ current_user.username }}</strong></span>
+                        <a href="{{ url_for('main.logout') }}" class="button is-primary">
+                            Logout
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('main.register') }}" class="button is-primary">
+                            <strong>Sign up</strong>
+                        </a>
+                        <a href="{{ url_for('main.login') }}" class="button is-light">
+                            Log in
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<section class="section">
+    <div class="container">
+        <h1 class="title">Manage and Format Extracted Text</h1>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="notification is-{{ 'danger' if category == 'error' else category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="box">
+            <h2 class="subtitle">Current Text</h2>
+            {% if request.form.text_to_manage %}
+                <div class="content">
+                    <pre style="white-space: pre-wrap; background-color: #222; padding: 1em; border-radius: 4px;">{{ request.form.text_to_manage }}</pre>
+                </div>
+                <hr>
+                <h3 class="subtitle">AI Formatting Actions (WIP)</h3>
+                <div class="buttons">
+                    <button class="button is-link">Summarize</button>
+                    <button class="button is-link">Extract Key Numbers (Table)</button>
+                    <button class="button is-link">Clean Up Gibberish</button>
+                    <button class="button is-link">Translate (Specify Language)</button>
+                    <button class="button is-link">Identify Action Items</button>
+                    <!-- Add more AI action buttons here -->
+                </div>
+                <hr>
+                <h3 class="subtitle">Combined Texts (WIP)</h3>
+                <p>Functionality to join texts from multiple uploads will be here.</p>
+
+            {% else %}
+                <p>No text has been sent here for management yet. Go to the <a href="{{ url_for('main.upload_page') }}">Upload & Capture</a> page to get started.</p>
+            {% endif %}
+        </div>
+
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Navbar burger toggle
+    const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+    $navbarBurgers.forEach(el => {
+        el.addEventListener('click', () => {
+            const target = el.dataset.target;
+            const $target = document.getElementById(target);
+            el.classList.toggle('is-active');
+            $target.classList.toggle('is-active');
+        });
+    });
+});
+</script>
+{% endblock %} 
