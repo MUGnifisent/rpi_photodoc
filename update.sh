@@ -13,7 +13,7 @@ echo "Updating the application..."
 # This requires sudo, so the user might be prompted for a password.
 echo "Ensuring system dependencies for camera and Python builds are installed..."
 echo "This may require sudo password."
-if sudo apt update && sudo apt install -y python3.11-dev libcap-dev libcamera-apps python3-libcamera; then
+if sudo apt update && sudo apt install -y python3.11-dev libcap-dev libcamera-apps python3-libcamera libssl-dev; then
     echo "System dependencies checked/installed."
 else
     echo "Error: Failed to install system dependencies. Please check apt errors."
@@ -53,6 +53,13 @@ else
     echo "Please check for errors above. You might need to resolve them manually."
     deactivate # Deactivate venv if pip install fails
     exit 1
+fi
+
+echo "Forcing reinstall of cryptography and Werkzeug to link with updated OpenSSL if necessary..."
+if pip3 install --force-reinstall --no-cache-dir cryptography Werkzeug; then
+    echo "Successfully reinstalled cryptography and Werkzeug."
+else
+    echo "Warning: Failed to force reinstall cryptography or Werkzeug. This might lead to issues if OpenSSL linking was problematic."
 fi
 
 # 4. Ensure .flaskenv file is sensible (optional, but good practice)
