@@ -9,6 +9,17 @@ set -e
 
 echo "Updating the application..."
 
+# 0. Install System-level dependencies for picamera2 and building packages
+# This requires sudo, so the user might be prompted for a password.
+echo "Ensuring system dependencies for camera and Python builds are installed..."
+echo "This may require sudo password."
+if sudo apt update && sudo apt install -y python3.11-dev libcap-dev libcamera-apps python3-libcamera; then
+    echo "System dependencies checked/installed."
+else
+    echo "Error: Failed to install system dependencies. Please check apt errors."
+    exit 1
+fi
+
 # 1. Pull latest changes from Git
 echo "Pulling latest changes from Git repository..."
 if git pull; then
@@ -19,10 +30,10 @@ else
     # Optionally, you could add a `exit 1` here if a failed pull is critical
 fi
 
-# 2. Create/Activate Python virtual environment
+# 2. Create/Activate Python virtual environment with system-site-packages
 if [ ! -d "venv" ]; then
-    echo "Creating Python virtual environment 'venv'..."
-    python3 -m venv venv
+    echo "Creating Python virtual environment 'venv' with --system-site-packages..."
+    python3 -m venv --system-site-packages venv
 else
     echo "Virtual environment 'venv' already exists."
 fi

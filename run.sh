@@ -3,47 +3,43 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
-PROJECT_DIR="." # Assuming the script is in the project root
+PROJECT_DIR="rpi_photodoc"
 
-cd "$PROJECT_DIR"
+# Assuming the script is run from the parent directory of rpi_photodoc
+# or that rpi_photodoc is in the current path.
+# If not, cd to the specific project directory if needed.
+# Example: cd "$(dirname "$0")/$PROJECT_DIR" if script is outside and knows relative path
+# For now, assuming it's run from within rpi_photodoc or rpi_photodoc is directly under where it's run
 
-# 1. Check for virtual environment
+if [ -d "$PROJECT_DIR" ] && [ "$(basename "$(pwd)")" != "$PROJECT_DIR" ]; then
+  echo "Changing to project directory: $PROJECT_DIR"
+  cd "$PROJECT_DIR"
+elif [ ! -d "venv" ] && [ -d "../$PROJECT_DIR/venv" ]; then
+    # This case is if the script is in a scripts/ folder one level up from rpi_photodoc
+    echo "Changing to project directory from parent: $PROJECT_DIR"
+    cd .. # assuming script is in a subfolder like 'scripts', go up
+    cd "$PROJECT_DIR"
+fi
+
+
 if [ ! -d "venv" ]; then
     echo "Error: Virtual environment 'venv' not found."
-    echo "Please run the setup script first (e.g., setup_and_run.sh or update.sh)."
+    echo "Please run the setup script (e.g., setup_and_run.sh or update.sh) first."
     exit 1
 fi
 
-# 2. Activate the virtual environment
 echo "Activating virtual environment..."
 source venv/bin/activate
 
-# 3. Check for .flaskenv file
-if [ ! -f ".flaskenv" ]; then
-    echo "Warning: .flaskenv file not found. Creating a default one."
-    echo "FLASK_APP=app.py" > .flaskenv
-    echo "FLASK_ENV=development" >> .flaskenv
-elif ! grep -q "FLASK_APP=app.py" .flaskenv; then
-    echo "Warning: FLASK_APP not found in .flaskenv. Adding it."
-    echo "FLASK_APP=app.py" >> .flaskenv
-fi
-
-# 4. Ensure config directories exist (app.py does this, but good for belt-and-suspenders)
-if [ -f "app.py" ]; then # Only if app.py exists, to avoid error if run in wrong dir
-    echo "Ensuring config directories exist (via app.py logic if it runs)..."
-    # app.py creates these on startup, so just a note here
-    # mkdir -p config/prompts # This would be redundant if app.py handles it
-else
-    echo "Warning: app.py not found in current directory. Cannot ensure config directories."
-fi
-
-
-# 5. Run the Flask application
+echo "Ensuring config directories exist (via app.py logic if it runs)..."
 echo "Starting Flask application on http://0.0.0.0:5000 ..."
 echo "You can access the application by navigating to http://localhost:5000 in your browser."
 echo "Press CTRL+C to stop the server."
-flask run --host=0.0.0.0 --port=5000
 
-# Deactivate virtual environment when script exits (though flask run will keep it active until CTRL+C)
-echo "Flask server stopped."
+# Use the python from the venv to run flask
+python3 -m flask run --host=0.0.0.0 --port=5000
+
+# Deactivate virtual environment when script exits
+# This line will be reached if flask run exits gracefully or is interrupted.
+echo "Flask server stopped. Deactivating virtual environment."
 deactivate 
