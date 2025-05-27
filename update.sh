@@ -55,13 +55,6 @@ else
     exit 1
 fi
 
-echo "Forcing reinstall of cryptography and Werkzeug to link with updated OpenSSL if necessary..."
-if pip3 install --force-reinstall --no-cache-dir cryptography Werkzeug; then
-    echo "Successfully reinstalled cryptography and Werkzeug."
-else
-    echo "Warning: Failed to force reinstall cryptography or Werkzeug. This might lead to issues if OpenSSL linking was problematic."
-fi
-
 # 4. Ensure .flaskenv file is sensible (optional, but good practice)
 if [ ! -f ".flaskenv" ]; then
     echo "Creating default .flaskenv file..."
