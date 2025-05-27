@@ -2,6 +2,7 @@
 {% block title %}Upload & Process Image{% endblock %}
 
 {% block head %}
+{{ super() }}
 <style>
     .upload-page-container {
         max-width: 600px;
@@ -14,9 +15,19 @@
         margin-bottom: 1rem;
         border-radius: 4px; /* From style.css */
         background-color: #2c2c2c; /* Match input fields */
+        min-height: 240px; /* Default minimum height */
     }
     .file-label .file-name {
         border-width: 1px; /* Ensure file name area also has border */
+    }
+    /* For loading spinner on buttons */
+    .button.is-loading::after {
+        border-color: transparent transparent #fff #fff !important; /* White spinner for dark buttons */
+    }
+    #rpi-camera-section .subtitle,
+    #rpi-camera-section-unavailable .subtitle {
+        min-height: 2.5em; /* Space for status messages */
+        padding-bottom: 0.5rem;
     }
 </style>
 {% endblock %}
@@ -27,24 +38,24 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="notification is-{{ 'danger' if category == 'error' else category }} is-light is-small mb-4">
-                        <button class="delete is-small"></button>
+                    <div class="notification is-{{ 'danger' if category == 'error' else category }} is-light is-small mb-4" id="flash-message-{{ loop.index }}">
+                        <button class="delete is-small" onclick="this.parentElement.remove();"></button>
                         {{ message }}
                     </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
 
-        <div class="box">
+        <div class="box" id="upload-box">
             <h1 class="title is-3 has-text-centered">Process New Image</h1>
-            <p class="subtitle is-6 has-text-centered has-text-grey-light mb-5">Upload an image file (PNG, JPG, WEBP) to extract text and create a new document.</p>
+            <p class="subtitle is-6 has-text-centered has-text-grey-light mb-5">Upload an image file (PNG, JPG, WEBP) to extract text.</p>
             
             <form method="POST" action="{{ url_for('main.process_upload') }}" enctype="multipart/form-data" id="upload-form">
                 <div class="field">
                     <label class="label">Image File</label>
                     <div class="file is-primary has-name is-boxed is-fullwidth">
                         <label class="file-label">
-                            <input class="file-input" type="file" name="file" accept="image/png, image/jpeg, image/webp" id="file-upload-input" required>
+                            <input class="file-input" type="file" name="file" accept="image/png, image/jpeg, image/webp" id="file-upload-input">
                             <span class="file-cta">
                                 <span class="file-icon"><i class="fas fa-upload"></i></span>
                                 <span class="file-label">Choose a file…</span>
@@ -53,6 +64,7 @@
                         </label>
                     </div>
                 </div>
+                 <div id="upload-form-error-placeholder" class="mt-2"></div> <!-- For JS-based errors -->
 
                 <div class="field mt-5">
                     <div class="control">
@@ -65,60 +77,65 @@
             </form>
         </div>
 
-        <div class="box mt-5">
+        {% if camera_available %}
+        <div class="box mt-5" id="rpi-camera-section">
             <h2 class="title is-4 has-text-centered">RPi Camera</h2>
-            <p class="subtitle is-6 has-text-centered has-text-grey-light mb-4">Live camera feed will appear below (Feature Coming Soon).</p>
+            <p class="subtitle is-6 has-text-centered has-text-grey-light mb-4" id="camera-status-text">Checking camera status...</p>
             <div class="has-text-centered">
-                 <img src="https://via.placeholder.com/480x360.png?text=Camera+Feed+Area" alt="Camera Feed Placeholder" id="camera-feed" class="camera-feed"/>
+                 <img src="{{ url_for('static', filename='img/image_placeholder.png') }}" alt="Camera Feed" id="camera-feed-img" class="camera-feed"/>
             </div>
             <button class="button is-link is-fullwidth mb-2 mt-4" id="start-camera-btn" disabled>
                 <span class="icon"><i class="fas fa-video"></i></span>
                 <span>Start Camera</span>
             </button>
-            <button class="button is-primary is-fullwidth" id="capture-btn" style="display:none;" disabled>
-                <span class="icon"><i class="fas fa-camera"></i></span>
-                <span>Capture Photo</span>
+            <button class="button is-danger is-fullwidth mb-2 mt-4" id="stop-camera-btn" style="display:none;">
+                <span class="icon"><i class="fas fa-video-slash"></i></span>
+                <span>Stop Camera</span>
             </button>
+            <button class="button is-primary is-fullwidth" id="capture-photo-btn" style="display:none;" disabled>
+                <span class="icon"><i class="fas fa-camera"></i></span>
+                <span>Capture Photo & Process</span>
+            </button>
+            <div id="capture-message-placeholder" class="mt-3"></div>
         </div>
+        {% else %}
+        <div class="box mt-5 is-hidden-touch" id="rpi-camera-section-unavailable">
+             <h2 class="title is-4 has-text-centered">RPi Camera</h2>
+             <p class="subtitle is-6 has-text-centered has-text-grey-light mb-4">RPi Camera feature is not available on this device or the camera is not detected.</p>
+             <div class="has-text-centered">
+                <span class="icon is-large has-text-grey-light"><i class="fas fa-exclamation-triangle fa-3x"></i></span>
+             </div>
+        </div>
+        {% endif %}
     </div>
 </section>
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('file-upload-input');
-    if (fileInput) {
+    const fileNameDisplay = document.querySelector('.file-name');
+    if (fileInput && fileNameDisplay) {
         fileInput.onchange = () => {
             if (fileInput.files.length > 0) {
-                document.querySelector('.file-name').textContent = fileInput.files[0].name;
+                fileNameDisplay.textContent = fileInput.files[0].name;
             } else {
-                document.querySelector('.file-name').textContent = "No file selected";
+                fileNameDisplay.textContent = "No file selected";
             }
         }
     }
 
     const uploadForm = document.getElementById('upload-form');
     const uploadSubmitButton = document.getElementById('upload-submit-button');
+    const uploadFormErrorPlaceholder = document.getElementById('upload-form-error-placeholder');
+
     if (uploadForm && uploadSubmitButton) {
         uploadForm.addEventListener('submit', (event) => {
-            if(fileInput && fileInput.hasAttribute('required') && fileInput.files.length === 0) {
-                // Prevent submission and show a more integrated Bulma notification
+            if (fileInput && fileInput.files.length === 0) {
                 event.preventDefault();
-                const existingNotification = uploadForm.querySelector('.notification.is-warning');
-                if (existingNotification) existingNotification.remove(); // Remove old one if any
-
-                const warningDiv = document.createElement('div');
-                warningDiv.className = 'notification is-warning is-light is-small mt-3';
-                warningDiv.innerHTML = '<button class="delete is-small"></button>Please select a file to upload.';
-                uploadForm.insertBefore(warningDiv, fileInput.closest('.field').nextSibling);
-                
-                const deleteButton = warningDiv.querySelector('.delete');
-                if (deleteButton) {
-                    deleteButton.addEventListener('click', () => {
-                        warningDiv.remove();
-                    });
-                }
+                displayNotification('Please select a file to upload.', 'warning', uploadFormErrorPlaceholder, true);
                 return;
             }
             uploadSubmitButton.classList.add('is-loading');
@@ -126,11 +143,190 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Camera (Placeholder)
-    const startCameraButton = document.getElementById('start-camera-btn');
-    const captureButton = document.getElementById('capture-btn');
-    if(startCameraButton) startCameraButton.disabled = true;
-    if(captureButton) captureButton.disabled = true;
+    function displayNotification(message, type = 'info', container, isFormError = false) {
+        if (!container) {
+            console.warn("Notification container not found for message:", message);
+            // Fallback to a generic alert if no container and not a form error
+            if(!isFormError) alert(message);
+            return;
+        }
+        let notificationDiv = container.querySelector('.notification'); // Try to reuse existing for form errors
+        if (!notificationDiv || !isFormError) { // Always create new for non-form errors or if no existing
+            if(isFormError) container.innerHTML = ''; // Clear previous form error
+            notificationDiv = document.createElement('div');
+            notificationDiv.className = `notification is-${type} is-light is-small mb-3`;
+            container.appendChild(notificationDiv);
+        } else { // Update existing form error notification
+             notificationDiv.className = `notification is-${type} is-light is-small mb-3`; // Update class for new type
+        }
+        
+        notificationDiv.innerHTML = `<button class="delete is-small"></button>${message}`;
+        const deleteButton = notificationDiv.querySelector('.delete');
+        if (deleteButton) {
+            deleteButton.addEventListener('click', () => notificationDiv.remove());
+        }
+    }
+
+    const cameraSection = document.getElementById('rpi-camera-section');
+    if (cameraSection) { // Only run camera JS if the section is present (i.e., camera_available was true)
+        const cameraFeedImg = document.getElementById('camera-feed-img');
+        const startCameraButton = document.getElementById('start-camera-btn');
+        const stopCameraButton = document.getElementById('stop-camera-btn');
+        const capturePhotoButton = document.getElementById('capture-photo-btn');
+        const cameraStatusText = document.getElementById('camera-status-text');
+        const captureMessagePlaceholder = document.getElementById('capture-message-placeholder');
+        const defaultPlaceholderSrc = "{{ url_for('static', filename='img/image_placeholder.png') }}";
+        let streamActive = false;
+
+        async function checkCameraStatus() {
+            cameraStatusText.textContent = "Checking camera status...";
+            startCameraButton.disabled = true;
+            try {
+                const response = await fetch("{{ url_for('main.camera_status') }}");
+                const data = await response.json();
+                if (data.available) {
+                    cameraStatusText.textContent = "Camera detected. Ready.";
+                    startCameraButton.disabled = false;
+                    if (data.streaming) {
+                        activateStreamUI();
+                    } else {
+                        deactivateStreamUI("Camera ready. Press Start.");
+                    }
+                } else {
+                    cameraStatusText.textContent = data.message || "RPi Camera not available.";
+                    deactivateStreamUI(data.message || "RPi Camera not available.");
+                    startCameraButton.disabled = true;
+                    capturePhotoButton.disabled = true;
+                }
+            } catch (error) {
+                console.error("Error checking camera status:", error);
+                deactivateStreamUI("Error checking camera status.");
+                startCameraButton.disabled = true;
+                capturePhotoButton.disabled = true;
+            }
+        }
+
+        function activateStreamUI() {
+            cameraFeedImg.src = "{{ url_for('main.camera_feed') }}?_nocache=" + new Date().getTime();
+            startCameraButton.style.display = 'none';
+            stopCameraButton.style.display = 'block';
+            stopCameraButton.disabled = false;
+            capturePhotoButton.style.display = 'block';
+            capturePhotoButton.disabled = false;
+            cameraStatusText.textContent = "Camera live.";
+            streamActive = true;
+        }
+
+        function deactivateStreamUI(statusText = "Camera stopped.") {
+            if (cameraFeedImg.src !== defaultPlaceholderSrc) {
+                 cameraFeedImg.src = defaultPlaceholderSrc;
+            }
+            startCameraButton.style.display = 'block';
+            // startCameraButton.disabled = false; // Re-enable based on overall availability
+            stopCameraButton.style.display = 'none';
+            capturePhotoButton.style.display = 'none';
+            // capturePhotoButton.disabled = true;
+            cameraStatusText.textContent = statusText;
+            streamActive = false;
+            // After deactivating, re-check overall status to set button states correctly
+            checkCameraStatus(); // This will re-evaluate startCameraButton.disabled
+        }
+
+        startCameraButton.addEventListener('click', async () => {
+            startCameraButton.classList.add('is-loading');
+            startCameraButton.disabled = true;
+            cameraStatusText.textContent = "Starting camera...";
+            try {
+                const response = await fetch("{{ url_for('main.start_camera_stream') }}", { method: 'POST' });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    activateStreamUI();
+                } else {
+                    const errorMsg = "Failed to start camera: " + (result.error || "Unknown error");
+                    deactivateStreamUI(errorMsg);
+                    displayNotification(errorMsg, 'danger', captureMessagePlaceholder);
+                }
+            } catch (error) {
+                console.error("Error starting camera:", error);
+                const errorMsg = "Error starting camera stream.";
+                deactivateStreamUI(errorMsg);
+                displayNotification(errorMsg + " Check console.", 'danger', captureMessagePlaceholder);
+            }
+            startCameraButton.classList.remove('is-loading');
+            // Button state will be set by checkCameraStatus called in deactivateStreamUI or by direct activation
+        });
+
+        stopCameraButton.addEventListener('click', async () => {
+            stopCameraButton.classList.add('is-loading');
+            stopCameraButton.disabled = true;
+            cameraStatusText.textContent = "Stopping camera...";
+            try {
+                const response = await fetch("{{ url_for('main.stop_camera_stream') }}", { method: 'POST' });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    deactivateStreamUI("Camera stopped.");
+                } else {
+                    const errorMsg = "Failed to stop camera: " + (result.error || "Server error");
+                    cameraStatusText.textContent = errorMsg; // Show error but UI might be in an inconsistent state
+                    displayNotification(errorMsg, 'danger', captureMessagePlaceholder);
+                    stopCameraButton.disabled = false; // Allow retry if stop failed
+                }
+            } catch (error) {
+                console.error("Error stopping camera:", error);
+                cameraStatusText.textContent = "Error stopping camera.";
+                displayNotification("Error stopping camera. Check console.", 'danger', captureMessagePlaceholder);
+                stopCameraButton.disabled = false; // Allow retry
+            }
+            stopCameraButton.classList.remove('is-loading');
+        });
+
+        capturePhotoButton.addEventListener('click', async () => {
+            capturePhotoButton.classList.add('is-loading');
+            capturePhotoButton.disabled = true;
+            cameraStatusText.textContent = "Capturing & processing photo...";
+            displayNotification('Processing... please wait.', 'info', captureMessagePlaceholder, true);
+            try {
+                const response = await fetch("{{ url_for('main.capture_rpi_photo') }}", { method: 'POST' });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    displayNotification(result.message + (result.redirect_url ? " Redirecting..." : ""), 'success', captureMessagePlaceholder, true);
+                    if (result.redirect_url) {
+                        window.location.href = result.redirect_url;
+                    } else {
+                        // If no redirect, e.g. API only returns photo data
+                        deactivateStreamUI("Photo captured. Restart stream if needed.");
+                    }
+                } else {
+                    const errorMsg = "Capture failed: " + (result.error || "Unknown error");
+                    cameraStatusText.textContent = errorMsg;
+                    displayNotification(errorMsg, 'danger', captureMessagePlaceholder, true);
+                    capturePhotoButton.disabled = false; // Allow retry
+                }
+            } catch (error) {
+                console.error("Error capturing photo:", error);
+                const errorMsg = "Client-side error during capture.";
+                cameraStatusText.textContent = errorMsg;
+                displayNotification(errorMsg + " Check console.", 'danger', captureMessagePlaceholder, true);
+                capturePhotoButton.disabled = false; // Allow retry
+            }
+            capturePhotoButton.classList.remove('is-loading');
+            // If not redirecting, ensure start button is appropriately enabled/disabled
+            if (!streamActive) checkCameraStatus(); 
+        });
+
+        // Initial check to set up UI based on camera availability
+        checkCameraStatus();
+    } // End of camera_available block
+
+    // Generic handler for dismissing server-side flash messages (if any remain)
+    document.querySelectorAll('.notification .delete').forEach((deleteButton) => {
+        if (!deleteButton.dataset.listenerAttached) { // Avoid double-binding if displayNotification already handled it
+            deleteButton.addEventListener('click', () => {
+                deleteButton.parentElement.remove();
+            });
+            deleteButton.dataset.listenerAttached = 'true';
+        }
+    });
 });
 </script>
 {% endblock %} 
