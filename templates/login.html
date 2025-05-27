@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Log In{% endblock %}
+
+{% block head %}
+<style>
+    .auth-container {
+        max-width: 400px;
+        margin: 4rem auto;
+    }
+    .auth-container .box {
+        padding: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container auth-container">
+        <div class="box">
+            <h1 class="title is-3 has-text-centered">Log In</h1>
+            <p class="subtitle is-6 has-text-centered has-text-grey-light">Access your documents and settings.</p>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="notification is-{{ 'danger' if category == 'error' else category }} is-light is-small mb-4">
+                            <button class="delete is-small"></button>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST">
+                <div class="field">
+                    <label class="label">Username</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="text" name="username" placeholder="e.g. yourname" required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-user"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Password</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="password" name="password" placeholder="********" required>
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="field mt-5">
+                    <button type="submit" class="button is-primary is-fullwidth is-medium">
+                        <span class="icon"><i class="fas fa-sign-in-alt"></i></span>
+                        <span>Log In</span>
+                    </button>
+                </div>
+            </form>
+            <p class="has-text-centered mt-4">
+                <small class="has-text-grey-light">Don't have an account? <a href="{{ url_for('main.register') }}">Sign up here</a>.</small>
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %} 

@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+{% block title %}Document View{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .page-photo {
+        max-width: 100%;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+        background: #222;
+        border: 1px solid #363636;
+    }
+    .page-box {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: #1e1e1e;
+        border-radius: 8px;
+        border: 1px solid #2c2c2c;
+        position: relative;
+    }
+    .page-box .page-actions {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+    .page-box .page-number {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background: rgba(0,0,0,0.7);
+        padding: 0.3rem 0.8rem;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+    .combined-text-area {
+        width: 100%;
+        min-height: 200px;
+        background: #232323;
+        color: #e0e0e0;
+        border: 1px solid #444;
+        border-radius: 4px;
+        padding: 1rem;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+        font-family: monospace;
+        line-height: 1.5;
+    }
+    .text-actions {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    .text-actions button {
+        flex: 1;
+    }
+    .text-field {
+        margin-bottom: 2rem;
+        background: #1e1e1e;
+        padding: 1rem;
+        border-radius: 6px;
+        border: 1px solid #2c2c2c;
+    }
+    .text-field textarea {
+        font-family: monospace;
+        line-height: 1.5;
+    }
+    .drag-handle {
+        cursor: move;
+        padding: 0.5rem;
+        margin: -0.5rem;
+        opacity: 0.7;
+    }
+    .drag-handle:hover {
+        opacity: 1;
+    }
+    .is-dragging {
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="mb-5">
+            <a href="{{ url_for('main.gallery_view') }}" class="button is-light">
+                <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                <span>Back to Gallery</span>
+            </a>
+        </div>
+        <h1 class="title is-2">{{ document.name }}</h1>
+        <p class="subtitle is-6 has-text-grey-light">Created: {{ document.created_at | format_datetime }} &bull; Last Updated: {{ document.updated_at | format_datetime }}</p>
+        <hr>
+        
+        <div id="pages-container">
+            <h2 class="title is-4 mb-4">Pages ({{ photos|length }})</h2>
+            {% for photo in photos %}
+                <div class="page-box" data-page-id="{{ photo.id }}">
+                    <div class="page-number">Page {{ loop.index }}</div>
+                    <div class="page-actions">
+                        <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                        <button class="button is-small is-info move-up" {% if loop.first %}disabled{% endif %}>
+                            <span class="icon"><i class="fas fa-arrow-up"></i></span>
+                        </button>
+                        <button class="button is-small is-info move-down" {% if loop.last %}disabled{% endif %}>
+                            <span class="icon"><i class="fas fa-arrow-down"></i></span>
+                        </button>
+                    </div>
+                    <img src="{{ url_for('uploaded_file', filename=photo.image_filename) }}" class="page-photo" alt="Page {{ loop.index }}">
+                    
+                    <div class="text-field">
+                        <label class="label">Edited Text</label>
+                        <div class="text-actions">
+                            <button class="button is-small is-primary copy-text" data-text="{{ photo.edited_text }}">
+                                <span class="icon"><i class="fas fa-copy"></i></span>
+                                <span>Copy</span>
+                            </button>
+                            <button class="button is-small is-info format-text" data-text-id="edited-{{ photo.id }}">
+                                <span class="icon"><i class="fas fa-magic"></i></span>
+                                <span>Format</span>
+                            </button>
+                            <button class="button is-small is-warning translate-text" data-text-id="edited-{{ photo.id }}">
+                                <span class="icon"><i class="fas fa-language"></i></span>
+                                <span>Translate</span>
+                            </button>
+                        </div>
+                        <textarea class="textarea" id="edited-{{ photo.id }}" rows="6">{{ photo.edited_text }}</textarea>
+                    </div>
+
+                    <div class="text-field">
+                        <label class="label">AI Cleaned Text</label>
+                        <div class="text-actions">
+                            <button class="button is-small is-primary copy-text" data-text="{{ photo.ai_cleaned_text }}">
+                                <span class="icon"><i class="fas fa-copy"></i></span>
+                                <span>Copy</span>
+                            </button>
+                            <button class="button is-small is-info use-as-edited" data-text="{{ photo.ai_cleaned_text }}" data-target="edited-{{ photo.id }}">
+                                <span class="icon"><i class="fas fa-arrow-up"></i></span>
+                                <span>Use as Edited</span>
+                            </button>
+                        </div>
+                        <textarea class="textarea" rows="4" readonly>{{ photo.ai_cleaned_text }}</textarea>
+                    </div>
+
+                    <div class="text-field">
+                        <label class="label">Raw OCR Text</label>
+                        <div class="text-actions">
+                            <button class="button is-small is-primary copy-text" data-text="{{ photo.original_ocr_text }}">
+                                <span class="icon"><i class="fas fa-copy"></i></span>
+                                <span>Copy</span>
+                            </button>
+                            <button class="button is-small is-info use-as-edited" data-text="{{ photo.original_ocr_text }}" data-target="edited-{{ photo.id }}">
+                                <span class="icon"><i class="fas fa-arrow-up"></i></span>
+                                <span>Use as Edited</span>
+                            </button>
+                        </div>
+                        <textarea class="textarea" rows="4" readonly>{{ photo.original_ocr_text }}</textarea>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <hr>
+        <div class="text-field">
+            <h2 class="title is-4">Combined Text</h2>
+            <div class="text-actions">
+                <button class="button is-primary" id="regenerate-combined">
+                    <span class="icon"><i class="fas fa-sync"></i></span>
+                    <span>Regenerate from Pages</span>
+                </button>
+                <button class="button is-info" id="format-combined">
+                    <span class="icon"><i class="fas fa-magic"></i></span>
+                    <span>Format</span>
+                </button>
+                <button class="button is-warning" id="translate-combined">
+                    <span class="icon"><i class="fas fa-language"></i></span>
+                    <span>Translate</span>
+                </button>
+                <button class="button is-success" id="save-combined">
+                    <span class="icon"><i class="fas fa-save"></i></span>
+                    <span>Save Changes</span>
+                </button>
+            </div>
+            <textarea class="combined-text-area" id="combined-text-area">{{ document.combined_text }}</textarea>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize drag-and-drop sorting
+    const container = document.getElementById('pages-container');
+    new Sortable(container, {
+        animation: 150,
+        handle: '.drag-handle',
+        draggable: '.page-box',
+        onEnd: function(evt) {
+            updatePageOrder();
+        }
+    });
+
+    // Handle move up/down buttons
+    container.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        
+        if (btn.classList.contains('move-up') || btn.classList.contains('move-down')) {
+            const pageBox = btn.closest('.page-box');
+            const isUp = btn.classList.contains('move-up');
+            const sibling = isUp ? pageBox.previousElementSibling : pageBox.nextElementSibling;
+            
+            if (sibling && sibling.classList.contains('page-box')) {
+                if (isUp) {
+                    container.insertBefore(pageBox, sibling);
+                } else {
+                    container.insertBefore(sibling, pageBox);
+                }
+                updatePageOrder();
+            }
+        }
+    });
+
+    // Update page numbers and button states
+    function updatePageOrder() {
+        const pages = container.querySelectorAll('.page-box');
+        const pageIds = Array.from(pages).map(page => page.dataset.pageId);
+        
+        pages.forEach((page, idx) => {
+            page.querySelector('.page-number').textContent = `Page ${idx + 1}`;
+            page.querySelector('.move-up').disabled = idx === 0;
+            page.querySelector('.move-down').disabled = idx === pages.length - 1;
+        });
+
+        // Send new order to server
+        fetch(`${window.location.pathname}/reorder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ page_ids: pageIds })
+        });
+    }
+
+    // Copy text functionality
+    document.querySelectorAll('.copy-text').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const text = btn.dataset.text;
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<span class="icon"><i class="fas fa-check"></i></span><span>Copied!</span>';
+                setTimeout(() => btn.innerHTML = originalText, 2000);
+            });
+        });
+    });
+
+    // Use as edited functionality
+    document.querySelectorAll('.use-as-edited').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const text = btn.dataset.text;
+            const targetId = btn.dataset.target;
+            document.getElementById(targetId).value = text;
+        });
+    });
+
+    // Combined text handling
+    const combinedTextArea = document.getElementById('combined-text-area');
+    const saveCombinedBtn = document.getElementById('save-combined');
+    
+    saveCombinedBtn.addEventListener('click', async () => {
+        saveCombinedBtn.classList.add('is-loading');
+        try {
+            const response = await fetch(`${window.location.pathname}/update_combined_text`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ combined_text: combinedTextArea.value })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                saveCombinedBtn.classList.remove('is-loading');
+                saveCombinedBtn.innerHTML = '<span class="icon"><i class="fas fa-check"></i></span><span>Saved!</span>';
+                setTimeout(() => {
+                    saveCombinedBtn.innerHTML = '<span class="icon"><i class="fas fa-save"></i></span><span>Save Changes</span>';
+                }, 2000);
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (err) {
+            alert('Error saving combined text: ' + err.message);
+            saveCombinedBtn.classList.remove('is-loading');
+        }
+    });
+
+    // Regenerate combined text
+    document.getElementById('regenerate-combined').addEventListener('click', () => {
+        const editedTexts = Array.from(document.querySelectorAll('.page-box')).map(
+            page => page.querySelector('textarea[id^="edited-"]').value
+        );
+        combinedTextArea.value = editedTexts.join('\n\n---\n\n');
+    });
+
+    // Format and translate buttons
+    ['format-combined', 'translate-combined'].forEach(id => {
+        document.getElementById(id).addEventListener('click', async () => {
+            const btn = document.getElementById(id);
+            const isTranslate = id === 'translate-combined';
+            
+            btn.classList.add('is-loading');
+            try {
+                const response = await fetch(`${window.location.pathname}/${isTranslate ? 'translate' : 'format'}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: combinedTextArea.value })
+                });
+                const result = await response.json();
+                if (response.ok && result.text) {
+                    combinedTextArea.value = result.text;
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (err) {
+                alert(`Error ${isTranslate ? 'translating' : 'formatting'} text: ` + err.message);
+            } finally {
+                btn.classList.remove('is-loading');
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

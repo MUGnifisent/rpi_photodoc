@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% block title %}Photo Gallery{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .photo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 2rem;
+    }
+    .photo-card {
+        background: #232323;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        border: 1px solid #292929;
+        transition: box-shadow 0.2s;
+        min-height: 350px;
+    }
+    .photo-card:hover {
+        box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    }
+    .photo-card .card-image {
+        width: 100%;
+        aspect-ratio: 4/3;
+        background: #181818;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .photo-card .card-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        background: #222;
+    }
+    .select-photo-checkbox {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 2;
+        margin: 0;
+        opacity: 0.9;
+        background: #fff;
+        border-radius: 3px;
+        width: 22px;
+        height: 22px;
+        border: 2px solid #ff9800;
+        accent-color: #ff9800;
+    }
+    .photo-card .card-content {
+        padding: 1rem 1rem 0.5rem 1rem;
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        min-height: 120px;
+    }
+    .photo-card .card-content .title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 0.35rem;
+        word-break: break-all;
+        display: block;
+    }
+    .photo-card .card-content .subtitle {
+        font-size: 0.85rem;
+        color: #bbb;
+        margin-bottom: 0.5rem;
+        margin-top: 0;
+        display: block;
+    }
+    .photo-card .card-content .content {
+        font-size: 0.95rem;
+        color: #e0e0e0;
+        margin-top: 0.2rem;
+        overflow: hidden;
+        position: relative;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        line-clamp: 3;
+        max-height: 4.5em;
+        white-space: pre-line;
+        text-overflow: ellipsis;
+    }
+    .photo-card .card-content .content::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 2em;
+        background: linear-gradient(180deg, rgba(35,35,35,0) 0%, #232323 100%);
+        pointer-events: none;
+    }
+    .create-doc-actions {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background-color: #1e1e1e;
+        border: 1px solid #2c2c2c;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .create-doc-actions .field {
+        flex-grow: 1;
+        margin-bottom: 0 !important;
+    }
+    .doc-list {
+        margin-top: 2.5rem;
+    }
+    .doc-list .doc-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #232323;
+        border-radius: 8px;
+        border: 1px solid #292929;
+        padding: 1.2rem 1.5rem;
+        margin-bottom: 1.2rem;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        transition: box-shadow 0.2s;
+    }
+    .doc-list .doc-card:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.13);
+    }
+    .doc-list .doc-info {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .doc-list .doc-title {
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 0.2rem;
+        word-break: break-all;
+    }
+    .doc-list .doc-meta {
+        font-size: 0.92rem;
+        color: #bbb;
+        margin-bottom: 0.1rem;
+    }
+    .doc-list .doc-actions {
+        margin-left: 1.5rem;
+        flex-shrink: 0;
+    }
+    .doc-list .button {
+        min-width: 90px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="level mb-5">
+            <div class="level-left">
+                <div>
+                    <h1 class="title is-2">My Photos</h1>
+                    <p class="subtitle is-5 has-text-grey-light">Browse and select photos to create documents.</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a href="{{ url_for('main.upload_page') }}" class="button is-primary is-medium">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>Upload New Photo</span>
+                </a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="notification is-{{ 'success' if category == 'success' else 'danger' }} is-light is-small mb-4">
+                        <button class="delete is-small"></button>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Create Document Actions -->
+        <div class="create-doc-actions" id="create-doc-actions" style="display: none;">
+            <div class="field">
+                <label class="label" for="new_doc_name">New Document Name (Optional)</label>
+                <div class="control">
+                    <input class="input" type="text" id="new_doc_name" placeholder="e.g., Project Report">
+                </div>
+            </div>
+            <div class="control">
+                <label class="label">&nbsp;</label>
+                <button class="button is-link" id="create-doc-btn" disabled>
+                    <span class="icon"><i class="fas fa-file-alt"></i></span>
+                    <span>Create Document (<span id="selected-photo-count">0</span>)</span>
+                </button>
+            </div>
+        </div>
+
+        {% if photos %}
+            <div class="photo-grid">
+                {% for photo in photos %}
+                    <div class="photo-card">
+                        <div class="card-image">
+                            <img src="{{ url_for('uploaded_file', filename=photo.image_filename) }}" alt="Photo {{ photo.id }}" onerror="this.src='/static/img/image_placeholder.png'">
+                            <input type="checkbox" class="select-photo-checkbox" data-photo-id="{{ photo.id }}" aria-label="Select photo">
+                        </div>
+                        <div class="card-content">
+                            <div class="title">{{ photo.image_filename | truncate(40) }}</div>
+                            <div class="subtitle">Uploaded: {{ photo.created_at | format_datetime }}</div>
+                            <div class="content">{{ photo.edited_text }}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="box no-documents">
+                <p class="title is-4"><i class="fas fa-folder-open fa-2x mb-3"></i><br>No photos yet!</p>
+                <p class="subtitle is-6 has-text-grey-light">Upload a photo to get started.</p>
+                <a href="{{ url_for('main.upload_page') }}" class="button is-primary is-medium mt-4">
+                    <span class="icon"><i class="fas fa-upload"></i></span>
+                    <span>Upload First Photo</span>
+                </a>
+            </div>
+        {% endif %}
+
+        <!-- List of Documents -->
+        <div class="doc-list">
+            <h2 class="title is-4">My Documents</h2>
+            {% if documents %}
+                {% for doc in documents %}
+                    <div class="doc-card">
+                        <div class="doc-info">
+                            <div class="doc-title">
+                                <a href="{{ url_for('main.document_view', doc_id=doc.id) }}">{{ doc.name | truncate(60) }}</a>
+                            </div>
+                            <div class="doc-meta">
+                                {{ doc.photo_ids | length }} page(s) &bull; Updated: {{ doc.updated_at | format_datetime }}
+                            </div>
+                        </div>
+                        <div class="doc-actions">
+                            <a href="{{ url_for('main.document_view', doc_id=doc.id) }}" class="button is-link is-small">
+                                <span class="icon"><i class="fas fa-eye"></i></span>
+                                <span>View</span>
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="has-text-grey-light">No documents yet. Select photos above and create your first document!</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const checkboxes = document.querySelectorAll('.select-photo-checkbox');
+    const createDocActions = document.getElementById('create-doc-actions');
+    const createDocBtn = document.getElementById('create-doc-btn');
+    const selectedPhotoCountSpan = document.getElementById('selected-photo-count');
+    const newDocNameInput = document.getElementById('new_doc_name');
+
+    let selectedPhotoIds = [];
+
+    function updateCreateDocButtonState() {
+        selectedPhotoIds = Array.from(checkboxes)
+                                .filter(cb => cb.checked)
+                                .map(cb => cb.dataset.photoId);
+        selectedPhotoCountSpan.textContent = selectedPhotoIds.length;
+        if (selectedPhotoIds.length >= 1) {
+            createDocBtn.disabled = false;
+            createDocActions.style.display = 'flex';
+        } else {
+            createDocBtn.disabled = true;
+            createDocActions.style.display = 'none';
+        }
+    }
+
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateCreateDocButtonState);
+    });
+
+    createDocBtn.addEventListener('click', async () => {
+        if (selectedPhotoIds.length < 1) {
+            alert('Please select at least one photo to create a document.');
+            return;
+        }
+        const newName = newDocNameInput.value.trim();
+        createDocBtn.classList.add('is-loading');
+        try {
+            const response = await fetch("{{ url_for('main.create_document_route') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    photo_ids: selectedPhotoIds,
+                    doc_name: newName
+                })
+            });
+            const result = await response.json();
+            if (response.ok && result.new_document_id) {
+                window.location.href = "{{ url_for('main.document_view', doc_id='_PLACEHOLDER_') }}".replace('_PLACEHOLDER_', result.new_document_id);
+            } else {
+                alert(result.error || 'Failed to create document.');
+            }
+        } catch (error) {
+            console.error('Error creating document:', error);
+            alert('An error occurred while trying to create the document.');
+        } finally {
+            createDocBtn.classList.remove('is-loading');
+        }
+    });
+
+    updateCreateDocButtonState();
+});
+</script>
+{% endblock %} 

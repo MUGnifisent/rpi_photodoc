@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Sign Up{% endblock %}
+
+{% block head %}
+<style>
+    .auth-container {
+        max-width: 400px;
+        margin: 4rem auto;
+    }
+    .auth-container .box {
+        padding: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container auth-container">
+        <div class="box">
+            <h1 class="title is-3 has-text-centered">Create Account</h1>
+            <p class="subtitle is-6 has-text-centered has-text-grey-light">Join to start processing your documents.</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                         <div class="notification is-{{ 'danger' if category == 'error' else category }} is-light is-small mb-4">
+                            <button class="delete is-small"></button>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST">
+                <div class="field">
+                    <label class="label">Username</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="text" name="username" placeholder="Choose a username" required>
+                        <span class="icon is-small is-left"><i class="fas fa-user"></i></span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Password</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="password" name="password" placeholder="Create a password" required>
+                        <span class="icon is-small is-left"><i class="fas fa-lock"></i></span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Confirm Password</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="password" name="confirm_password" placeholder="Repeat password" required>
+                        <span class="icon is-small is-left"><i class="fas fa-check-circle"></i></span>
+                    </div>
+                </div>
+
+                <div class="field mt-5">
+                    <button type="submit" class="button is-primary is-fullwidth is-medium">
+                        <span class="icon"><i class="fas fa-user-plus"></i></span>
+                        <span>Sign Up</span>
+                    </button>
+                </div>
+            </form>
+            <p class="has-text-centered mt-4">
+                <small class="has-text-grey-light">Already have an account? <a href="{{ url_for('main.login') }}">Log in here</a>.</small>
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %} 

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Upload & Process Image{% endblock %}
+
+{% block head %}
+<style>
+    .upload-page-container {
+        max-width: 600px;
+        margin: 3rem auto; /* Vertical margin for better spacing */
+    }
+    .camera-feed {
+        max-width: 100%;
+        height: auto;
+        border: 1px solid #4a4a4a; /* From style.css */
+        margin-bottom: 1rem;
+        border-radius: 4px; /* From style.css */
+        background-color: #2c2c2c; /* Match input fields */
+    }
+    .file-label .file-name {
+        border-width: 1px; /* Ensure file name area also has border */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container upload-page-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="notification is-{{ 'danger' if category == 'error' else category }} is-light is-small mb-4">
+                        <button class="delete is-small"></button>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="box">
+            <h1 class="title is-3 has-text-centered">Process New Image</h1>
+            <p class="subtitle is-6 has-text-centered has-text-grey-light mb-5">Upload an image file (PNG, JPG, WEBP) to extract text and create a new document.</p>
+            
+            <form method="POST" action="{{ url_for('main.process_upload') }}" enctype="multipart/form-data" id="upload-form">
+                <div class="field">
+                    <label class="label">Image File</label>
+                    <div class="file is-primary has-name is-boxed is-fullwidth">
+                        <label class="file-label">
+                            <input class="file-input" type="file" name="file" accept="image/png, image/jpeg, image/webp" id="file-upload-input" required>
+                            <span class="file-cta">
+                                <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                <span class="file-label">Choose a file…</span>
+                            </span>
+                            <span class="file-name">No file selected</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="field mt-5">
+                    <div class="control">
+                        <button type="submit" class="button is-primary is-fullwidth is-medium" id="upload-submit-button">
+                            <span class="icon"><i class="fas fa-cogs"></i></span>
+                            <span>Upload and Process</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="box mt-5">
+            <h2 class="title is-4 has-text-centered">RPi Camera</h2>
+            <p class="subtitle is-6 has-text-centered has-text-grey-light mb-4">Live camera feed will appear below (Feature Coming Soon).</p>
+            <div class="has-text-centered">
+                 <img src="https://via.placeholder.com/480x360.png?text=Camera+Feed+Area" alt="Camera Feed Placeholder" id="camera-feed" class="camera-feed"/>
+            </div>
+            <button class="button is-link is-fullwidth mb-2 mt-4" id="start-camera-btn" disabled>
+                <span class="icon"><i class="fas fa-video"></i></span>
+                <span>Start Camera</span>
+            </button>
+            <button class="button is-primary is-fullwidth" id="capture-btn" style="display:none;" disabled>
+                <span class="icon"><i class="fas fa-camera"></i></span>
+                <span>Capture Photo</span>
+            </button>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const fileInput = document.getElementById('file-upload-input');
+    if (fileInput) {
+        fileInput.onchange = () => {
+            if (fileInput.files.length > 0) {
+                document.querySelector('.file-name').textContent = fileInput.files[0].name;
+            } else {
+                document.querySelector('.file-name').textContent = "No file selected";
+            }
+        }
+    }
+
+    const uploadForm = document.getElementById('upload-form');
+    const uploadSubmitButton = document.getElementById('upload-submit-button');
+    if (uploadForm && uploadSubmitButton) {
+        uploadForm.addEventListener('submit', (event) => {
+            if(fileInput && fileInput.hasAttribute('required') && fileInput.files.length === 0) {
+                // Prevent submission and show a more integrated Bulma notification
+                event.preventDefault();
+                const existingNotification = uploadForm.querySelector('.notification.is-warning');
+                if (existingNotification) existingNotification.remove(); // Remove old one if any
+
+                const warningDiv = document.createElement('div');
+                warningDiv.className = 'notification is-warning is-light is-small mt-3';
+                warningDiv.innerHTML = '<button class="delete is-small"></button>Please select a file to upload.';
+                uploadForm.insertBefore(warningDiv, fileInput.closest('.field').nextSibling);
+                
+                const deleteButton = warningDiv.querySelector('.delete');
+                if (deleteButton) {
+                    deleteButton.addEventListener('click', () => {
+                        warningDiv.remove();
+                    });
+                }
+                return;
+            }
+            uploadSubmitButton.classList.add('is-loading');
+            uploadSubmitButton.disabled = true;
+        });
+    }
+
+    // Camera (Placeholder)
+    const startCameraButton = document.getElementById('start-camera-btn');
+    const captureButton = document.getElementById('capture-btn');
+    if(startCameraButton) startCameraButton.disabled = true;
+    if(captureButton) captureButton.disabled = true;
+});
+</script>
+{% endblock %} 

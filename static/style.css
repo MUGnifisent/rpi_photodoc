@@ -1,0 +1,246 @@
+/* Dark theme with orange highlights */
+html {
+    height: 100%; /* Ensure html element takes full height */
+}
+
+body {
+    background-color: #121212; /* Darker, more standard dark mode background */
+    color: #e0e0e0; /* Slightly off-white for better readability */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    line-height: 1.6;
+    display: flex; /* Added for flex layout */
+    flex-direction: column; /* Stack navbar and main content */
+    min-height: 100vh; /* Ensure body takes at least full viewport height */
+}
+
+/* Make the main content area flexible to take available space */
+main[role="main"] {
+    flex-grow: 1;
+    padding-bottom: 2rem; /* Add some padding at the very bottom of the content */
+}
+
+.button.is-primary {
+    background-color: #ff6600; /* Orange */
+    border-color: transparent;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.button.is-primary:hover, .button.is-primary:focus {
+    background-color: #e65c00; /* Darker orange */
+    color: #ffffff;
+}
+
+.button.is-link {
+    background-color: #ff7700; /* Slightly lighter orange for secondary actions */
+    border-color: transparent;
+    color: #ffffff;
+}
+.button.is-link:hover, .button.is-link:focus {
+    background-color: #ff8c1a;
+    color: #ffffff;
+}
+
+.button.is-light {
+    background-color: #363636;
+    border-color: #4a4a4a;
+    color: #f5f5f5;
+}
+.button.is-light:hover, .button.is-light:focus {
+    background-color: #4a4a4a;
+    border-color: #5a5a5a;
+    color: #f5f5f5;
+}
+
+.button.is-text:hover, .button.is-text:focus {
+    background-color: #2a2a2a;
+    color: #ff6600;
+}
+
+.title,
+.subtitle {
+    color: #f5f5f5;
+}
+
+.title {
+    font-weight: 300; /* Lighter weight for modern titles */
+}
+.subtitle {
+    font-weight: 300;
+    color: #b0b0b0; /* Softer color for subtitles */
+}
+
+.box {
+    background-color: #1e1e1e; /* Slightly different dark shade for boxes */
+    border: 1px solid #2c2c2c;
+    color: #e0e0e0;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.input,
+.textarea,
+.select select {
+    background-color: #2c2c2c;
+    border-color: #4a4a4a;
+    color: #f5f5f5;
+    box-shadow: none;
+    border-radius: 4px;
+}
+
+.input:focus,
+.textarea:focus,
+.select select:focus {
+    border-color: #ff6600;
+    box-shadow: 0 0 0 0.125em rgba(255, 102, 0, 0.25);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+    color: #888888; /* Subtler placeholder */
+}
+
+.select:not(.is-multiple):not(.is-loading)::after {
+    border-color: #ff6600;
+}
+
+.text-processing-area[readonly] {
+    background-color: #252525;
+    color: #c0c0c0;
+    cursor: default;
+    border: 1px dashed #4a4a4a; /* Dashed border for readonly */
+}
+
+.tabs ul {
+    border-bottom-color: #363636;
+}
+
+.tabs li.is-active a {
+    color: #ff6600;
+    border-bottom-color: #ff6600;
+    font-weight: 600;
+}
+
+.tabs a {
+    color: #b0b0b0;
+    border-bottom: 2px solid transparent; /* Add base border for smoother transition */
+}
+
+.tabs a:hover {
+    color: #ff6600;
+    border-bottom-color: #ff6600;
+}
+
+/* Navbar styling */
+.navbar {
+    background-color: #1e1e1e;
+    border-bottom: 1px solid #2c2c2c;
+}
+
+.navbar-item,
+.navbar-link {
+    color: #e0e0e0;
+    font-weight: 500;
+}
+
+/* Increase specificity and ensure orange color for active/hover states */
+.navbar-menu .navbar-start > .navbar-item:hover,
+.navbar-menu .navbar-start > .navbar-link:hover,
+.navbar-menu .navbar-start > .navbar-item.is-active {
+    background-color: #2c2c2c !important;
+    color: #ff6600 !important; 
+}
+
+/* Ensure general navbar links also follow suit if they are not covered above */
+.navbar-item:focus, 
+.navbar-item:focus-within,
+.navbar-link:focus,
+.navbar-link:focus-within {
+    background-color: #2c2c2c !important;
+    color: #ff6600 !important;
+}
+
+.navbar-burger span {
+    background-color: #e0e0e0;
+}
+
+.navbar-menu.is-active {
+    background-color: #1e1e1e;
+}
+
+.navbar-brand .title {
+    color: #ff6600 !important; /* Ensure brand title is orange */
+}
+
+/* Style for the user greeting text to make it non-interactive */
+.navbar-user-greeting,
+.navbar-user-greeting strong {
+    color: #b0b0b0 !important; /* Match has-text-grey-light, ensure override */
+    background-color: transparent !important;
+    pointer-events: none; /* Make it non-clickable */
+    padding-left: 0.75rem; 
+    padding-right: 0.25rem; /* Less padding on the right before button */
+}
+
+.notification.is-light {
+    background-color: #2c2c2c;
+    color: #e0e0e0;
+    border-left: 4px solid #4a4a4a;
+}
+.notification.is-light.is-primary {
+    border-left-color: #ff6600;
+}
+.notification.is-light.is-link {
+    border-left-color: #ff7700;
+}
+.notification.is-light.is-info {
+    border-left-color: #209cee;
+}
+.notification.is-light.is-success {
+    border-left-color: #23d160;
+}
+.notification.is-light.is-warning {
+    border-left-color: #ffdd57;
+    color: #121212; /* Dark text for light warning for contrast */
+}
+.notification.is-light.is-danger {
+    border-left-color: #ff3860;
+}
+
+.section {
+    padding: 2rem 1.5rem; /* Slightly reduced default section padding */
+}
+
+.container {
+    max-width: 1100px; /* Limit overall container width for better readability on large screens */
+}
+
+/* Helper for subtle text */
+.has-text-grey-light {
+    color: #b0b0b0 !important;
+}
+
+.card {
+    background-color: #1e1e1e;
+    border: 1px solid #2c2c2c;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+.card-header-title {
+    color: #e0e0e0;
+}
+.card-footer-item {
+    color: #ff6600;
+}
+.card-footer-item:hover {
+    color: #e65c00;
+    background-color: #2a2a2a;
+}
+
+/* Ensure links globally have a decent color */
+a {
+    color: #ff7700; /* Lighter orange for general links */
+}
+a:hover {
+    color: #ff8c1a;
+} 

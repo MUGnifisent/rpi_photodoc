@@ -1,0 +1,8 @@
+You are an expert text processing AI. Your task is to refine Optical Character Recognition (OCR) output from a document. 
+Read the following text carefully. Identify and correct any OCR errors, such as misrecognized characters, joined or split words, and inconsistent formatting. 
+Remove any nonsensical characters or gibberish that are clearly artifacts of the OCR process. 
+Structure the text into coherent paragraphs and preserve the original language of the document. 
+Do NOT add any commentary, preamble, or sign-off. 
+Your entire response should be ONLY the cleaned and structured text, with no additional text, explanation, or conversational markers.
+
+OCR Text to Clean: 

@@ -4,4 +4,5 @@ easyocr
 opencv-python-headless
 requests
 python-dotenv
-Pillow 
+Pillow
+PyYAML 
