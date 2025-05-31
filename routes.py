@@ -26,6 +26,9 @@ from document_manager import (
 )
 from datetime import datetime
 from camera_rpi import rpi_camera_instance # Import the camera instance
+import logging
+
+logger = logging.getLogger(__name__)
 
 main_bp = Blueprint('main', __name__)
 
@@ -42,26 +45,26 @@ def allowed_file(filename):
 def perform_ocr(filepath):
     if not reader:
         # To prevent NameError if easyocr fails to load
-        current_app.logger.error("EasyOCR reader not initialized. OCR cannot be performed.")
+        logger.error("EasyOCR reader not initialized. OCR cannot be performed.")
         raise Exception("EasyOCR reader not initialized.")
     try:
         # result = reader.readtext(filepath, detail=0, paragraph=True) # old
         result = reader.readtext(filepath, detail=0, paragraph=True, workers=0) # Added workers=0 based on potential thread safety issues with EasyOCR + Flask
         return "\n".join(result)
     except Exception as e:
-        current_app.logger.error(f"OCR processing failed for {filepath}: {e}")
+        logger.error(f"OCR processing failed for {filepath}: {e}")
         raise
 
 def call_llm(prompt_text_key, text_to_process, custom_prompt_text=None):
     llm_url = current_app.config.get('LLM_SERVER_URL')
     llm_model = get_llm_model_name() # Ensure this function exists and is imported from settings_routes
     if not llm_url:
-        current_app.logger.error("LLM Server URL not configured.")
+        logger.error("LLM Server URL not configured.")
         return "Error: LLM Server URL not configured."
 
     prompt_to_use = custom_prompt_text if custom_prompt_text else get_prompt(prompt_text_key)
     if not prompt_to_use:
-         current_app.logger.error(f"Prompt for key '{prompt_text_key}' not found.")
+         logger.error(f"Prompt for key '{prompt_text_key}' not found.")
          return f"Error: Prompt for key '{prompt_text_key}' not found."
 
     full_prompt = f"{prompt_to_use}\n\n{text_to_process}"
@@ -83,14 +86,14 @@ def call_llm(prompt_text_key, text_to_process, custom_prompt_text=None):
         elif 'choices' in response_data and len(response_data['choices']) > 0 and 'text' in response_data['choices'][0]:
              return response_data['choices'][0]['text'].strip() # OpenAI-like
         else:
-            current_app.logger.error(f"Unexpected LLM response format: {response_data}")
+            logger.error(f"Unexpected LLM response format: {response_data}")
             return "Error: Unexpected LLM response format from server."
 
     except requests.exceptions.RequestException as e:
-        current_app.logger.error(f"LLM request failed: {e}")
+        logger.error(f"LLM request failed: {e}")
         return f"Error communicating with LLM: {e}"
     except json.JSONDecodeError: # If response is not JSON
-        current_app.logger.error(f"Failed to decode LLM JSON response: {response.text}")
+        logger.error(f"Failed to decode LLM JSON response: {response.text}")
         return "Error: Failed to decode LLM response (not JSON). Content: " + response.text[:200]
 
 @main_bp.route('/')
@@ -143,7 +146,7 @@ def register():
         else:
             # This case might indicate an issue with User.create itself
             flash('An error occurred during registration. Please try again.', 'error')
-            current_app.logger.error(f"User creation failed for username: {username}")
+            logger.error(f"User creation failed for username: {username}")
 
     return render_template('register.html')
 
@@ -183,12 +186,6 @@ def stop_camera_stream():
 
 def gen_camera_feed():
     """Video streaming generator function."""
-    # Capture the actual app object when the generator is initialized.
-    # This ensures we have a reference to the app and its logger
-    # that persists even if the original request context is gone.
-    app = current_app._get_current_object()
-    logger = app.logger
-
     logger.info("gen_camera_feed called.")
     if not rpi_camera_instance.is_available():
         logger.warning("gen_camera_feed: Camera feed requested but camera not available.")
@@ -203,7 +200,6 @@ def gen_camera_feed():
     while True:
         frame = rpi_camera_instance.get_frame()
         if frame is None:
-            # logger.debug("gen_camera_feed: get_frame returned None, sleeping.")
             time.sleep(0.01)
             continue
         
@@ -211,11 +207,10 @@ def gen_camera_feed():
             logger.error("gen_camera_feed: Frame is not bytes, skipping frame.")
             continue
 
-        # logger.debug(f"gen_camera_feed: Yielding frame {frames_yielded + 1} of size {len(frame)} bytes.")
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
         frames_yielded += 1
-        if frames_yielded == 1: # Log only for the first frame to reduce noise
+        if frames_yielded == 1:
             logger.info(f"gen_camera_feed: Successfully yielded first frame of size {len(frame)} bytes.")
 
 @main_bp.route('/camera_feed')
@@ -241,47 +236,47 @@ def capture_rpi_photo():
     upload_folder = current_app.config['UPLOAD_FOLDER']
     if not os.path.exists(upload_folder):
         os.makedirs(upload_folder)
-        current_app.logger.info(f"Created upload folder: {upload_folder}")
+        logger.info(f"Created upload folder: {upload_folder}")
 
     original_filename = f"rpi_capture_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
     unique_filename = f"{uuid.uuid4().hex}_{original_filename}"
     filepath = os.path.join(upload_folder, unique_filename)
 
     try:
-        current_app.logger.info(f"Attempting to capture image to {filepath}")
+        logger.info(f"Attempting to capture image to {filepath}")
         capture_success = rpi_camera_instance.capture_image(filepath)
         if not capture_success:
-            current_app.logger.error(f"Failed to capture image to {filepath} by rpi_camera_instance.")
+            logger.error(f"Failed to capture image to {filepath} by rpi_camera_instance.")
             return jsonify({'success': False, 'error': 'Failed to capture image from camera.'}), 500
-        current_app.logger.info(f"Image captured successfully to {filepath}")
+        logger.info(f"Image captured successfully to {filepath}")
 
         # Start OCR and LLM processing (similar to process_upload)
         original_ocr_text = None
         ai_cleaned_text = "Error during processing or no text found."
 
         try:
-            current_app.logger.info(f"Performing OCR on {filepath}")
+            logger.info(f"Performing OCR on {filepath}")
             original_ocr_text = perform_ocr(filepath)
-            current_app.logger.info(f"OCR for {filepath}. Length: {len(original_ocr_text if original_ocr_text else [])}")
+            logger.info(f"OCR for {filepath}. Length: {len(original_ocr_text if original_ocr_text else [])}")
 
             if original_ocr_text and original_ocr_text.strip():
-                current_app.logger.info(f"Calling LLM for cleanup of {filepath}")
+                logger.info(f"Calling LLM for cleanup of {filepath}")
                 ai_cleaned_text_result = call_llm("cleanup_ocr", original_ocr_text)
                 if ai_cleaned_text_result.startswith("Error:"):
-                    current_app.logger.warning(f"LLM Error for {unique_filename}: {ai_cleaned_text_result}. Using raw OCR.")
+                    logger.warning(f"LLM Error for {unique_filename}: {ai_cleaned_text_result}. Using raw OCR.")
                     ai_cleaned_text = original_ocr_text
                 else:
                     ai_cleaned_text = ai_cleaned_text_result
-                current_app.logger.info(f"LLM for {filepath}. AI text length: {len(ai_cleaned_text if ai_cleaned_text else [])}")
+                logger.info(f"LLM for {filepath}. AI text length: {len(ai_cleaned_text if ai_cleaned_text else [])}")
             elif original_ocr_text is None:
                 ai_cleaned_text = "OCR process failed or returned no data."
-                current_app.logger.warning(f"OCR returned None for {filepath}.")
+                logger.warning(f"OCR returned None for {filepath}.")
             else:
                 ai_cleaned_text = "No text found by OCR."
-                current_app.logger.info(f"Skipping LLM for {filepath} (no/empty OCR text).")
+                logger.info(f"Skipping LLM for {filepath} (no/empty OCR text).")
 
         except Exception as e:
-            current_app.logger.error(f"Error in OCR/LLM for captured photo {unique_filename}: {e}", exc_info=True)
+            logger.error(f"Error in OCR/LLM for captured photo {unique_filename}: {e}", exc_info=True)
             ai_cleaned_text = original_ocr_text if original_ocr_text else f"Processing Error: {str(e)}"
             # Flash message for OCR/LLM error, but still try to save photo
             flash(f'Error during text processing for {original_filename}: {str(e)}. Basic photo info saved.', 'warning')
@@ -290,19 +285,19 @@ def capture_rpi_photo():
         # Create Photo database record
         new_photo = create_photo(current_user.id, unique_filename, original_ocr_text, ai_cleaned_text)
         if not new_photo:
-            current_app.logger.error(f"Failed to create photo record in database for {unique_filename}.")
+            logger.error(f"Failed to create photo record in database for {unique_filename}.")
             # This is a more critical failure for the capture & process flow
             flash(f'Failed to save captured photo details for {original_filename} to database.', 'error')
             return jsonify({'success': False, 'error': 'Failed to save photo metadata to database.'}), 500
         
-        current_app.logger.info(f"Photo record created for {unique_filename} with ID {new_photo['id']}.")
+        logger.info(f"Photo record created for {unique_filename} with ID {new_photo['id']}.")
 
         # Automatically create a document for this new photo
         doc_name = f"Capture {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         new_doc = create_document(current_user.id, doc_name, [new_photo['id']])
 
         if not new_doc:
-            current_app.logger.error(f"Failed to create document for captured photo {new_photo['id']}.")
+            logger.error(f"Failed to create document for captured photo {new_photo['id']}.")
             flash(f'Photo "{original_filename}" was captured and processed, but failed to automatically create a document. Please create one manually from the gallery.', 'warning')
             # Return success for photo processing but indicate document failure.
             # Client-side JS should handle this by perhaps redirecting to gallery or showing the photo id.
@@ -315,7 +310,7 @@ def capture_rpi_photo():
                 'redirect_url': url_for('main.gallery_view') # Redirect to gallery if doc fails
             }), 200 
         
-        current_app.logger.info(f"Document {new_doc['id']} created for photo {new_photo['id']}.")
+        logger.info(f"Document {new_doc['id']} created for photo {new_photo['id']}.")
         flash(f'Photo "{original_filename}" captured, processed, and document "{doc_name}" created successfully!', 'success')
         return jsonify({
             'success': True,
@@ -327,7 +322,7 @@ def capture_rpi_photo():
         }), 200
 
     except Exception as e:
-        current_app.logger.error(f"Overall error in capture_rpi_photo for {original_filename}: {e}", exc_info=True)
+        logger.error(f"Overall error in capture_rpi_photo for {original_filename}: {e}", exc_info=True)
         flash(f'An unexpected error occurred while capturing/processing {original_filename}: {str(e)}', 'error')
         return jsonify({'success': False, 'error': f'An unexpected error occurred: {str(e)}'}), 500
 
@@ -358,15 +353,15 @@ def process_upload():
         upload_folder = current_app.config['UPLOAD_FOLDER']
         if not os.path.exists(upload_folder):
             os.makedirs(upload_folder)
-            current_app.logger.info(f"Created upload folder: {upload_folder}")
+            logger.info(f"Created upload folder: {upload_folder}")
         
         filepath = os.path.join(upload_folder, unique_filename)
         
         try:
             file.save(filepath)
-            current_app.logger.info(f"File '{unique_filename}' uploaded by user {current_user.id}.")
+            logger.info(f"File '{unique_filename}' uploaded by user {current_user.id}.")
         except Exception as e:
-            current_app.logger.error(f"Error saving uploaded file '{unique_filename}': {e}")
+            logger.error(f"Error saving uploaded file '{unique_filename}': {e}")
             flash(f"Error saving file: {e}", "error")
             return redirect(url_for('main.upload_page'))
 
@@ -374,28 +369,28 @@ def process_upload():
         ai_cleaned_text = "Error during processing or no text found." # Default
 
         try:
-            current_app.logger.info(f"Performing OCR on {filepath}")
+            logger.info(f"Performing OCR on {filepath}")
             original_ocr_text = perform_ocr(filepath) # This can raise an exception
-            current_app.logger.info(f"OCR for {filepath}. Length: {len(original_ocr_text if original_ocr_text else [])}")
+            logger.info(f"OCR for {filepath}. Length: {len(original_ocr_text if original_ocr_text else [])}")
 
             if original_ocr_text and original_ocr_text.strip():
-                current_app.logger.info(f"Calling LLM for cleanup of {filepath}")
+                logger.info(f"Calling LLM for cleanup of {filepath}")
                 ai_cleaned_text_result = call_llm("cleanup_ocr", original_ocr_text)
                 if ai_cleaned_text_result.startswith("Error:"):
                     flash(f"LLM Error: {ai_cleaned_text_result}. Using raw OCR.", "warning")
                     ai_cleaned_text = original_ocr_text # Fallback to raw OCR
                 else:
                     ai_cleaned_text = ai_cleaned_text_result
-                current_app.logger.info(f"LLM for {filepath}. AI text length: {len(ai_cleaned_text if ai_cleaned_text else [])}")
+                logger.info(f"LLM for {filepath}. AI text length: {len(ai_cleaned_text if ai_cleaned_text else [])}")
             elif original_ocr_text is None: # OCR itself failed or returned None
                  ai_cleaned_text = "OCR process failed or returned no data."
-                 current_app.logger.warning(f"OCR returned None for {filepath}.")
+                 logger.warning(f"OCR returned None for {filepath}.")
             else: # OCR returned empty string
                 ai_cleaned_text = "No text found by OCR."
-                current_app.logger.info(f"Skipping LLM for {filepath} (no/empty OCR text).")
+                logger.info(f"Skipping LLM for {filepath} (no/empty OCR text).")
         
         except Exception as e: # Catch errors from perform_ocr or call_llm
-            current_app.logger.error(f"Error in OCR/LLM for {unique_filename}: {e}", exc_info=True)
+            logger.error(f"Error in OCR/LLM for {unique_filename}: {e}", exc_info=True)
             flash(f'Error during processing: {str(e)}', 'error')
             # Fallback: save original OCR text if available, otherwise the error message
             ai_cleaned_text = original_ocr_text if original_ocr_text else f"Processing Error: {str(e)}"
@@ -446,7 +441,7 @@ def create_document_route():
         flash(f'Document "{new_doc.get("name", "Untitled")}" created.', 'success') # Use .get for safety
         return jsonify({'message': 'Document created!', 'new_document_id': new_doc['id']}), 200
     else:
-        current_app.logger.error(f"Failed to create document for user {current_user.id} with photo_ids: {photo_ids}")
+        logger.error(f"Failed to create document for user {current_user.id} with photo_ids: {photo_ids}")
         return jsonify({'error': 'Failed to create document.'}), 500
 
 @main_bp.route('/document/<doc_id>', methods=['GET'])
@@ -465,7 +460,7 @@ def document_view(doc_id):
             if photo:
                 photos_in_doc.append(photo)
             else:
-                current_app.logger.warning(f"Photo ID {pid} in document {doc_id} not found or not owned by user {current_user.id}.")
+                logger.warning(f"Photo ID {pid} in document {doc_id} not found or not owned by user {current_user.id}.")
     
     # Sort photos by the order in doc['photo_ids'] - important if reordering is implemented
     # photos_in_doc.sort(key=lambda p: doc['photo_ids'].index(p['id']))
@@ -495,7 +490,7 @@ def update_combined_text(doc_id):
     if update_document(current_user.id, doc_id, update_data):
         return jsonify({'message': 'Combined text saved!'})
     else:
-        current_app.logger.error(f"Failed to update combined text for doc {doc_id}, user {current_user.id}")
+        logger.error(f"Failed to update combined text for doc {doc_id}, user {current_user.id}")
         return jsonify({'error': 'Failed to save combined text.'}), 500
 
 @main_bp.route('/document/<doc_id>/reorder', methods=['POST'])
@@ -528,7 +523,7 @@ def reorder_pages(doc_id):
     if update_document(current_user.id, doc_id, update_data):
         return jsonify({'success': True, 'message': 'Page order updated successfully.'})
     else:
-        current_app.logger.error(f"Failed to reorder pages for doc {doc_id}, user {current_user.id}")
+        logger.error(f"Failed to reorder pages for doc {doc_id}, user {current_user.id}")
         return jsonify({'error': 'Failed to update page order.'}), 500
 
 @main_bp.route('/document/<doc_id>/format', methods=['POST'])
@@ -549,7 +544,7 @@ def format_text(doc_id):
     if not custom_prompt_text and format_prompt_key not in DEFAULT_PROMPT_KEYS:
         return jsonify({'error': f'Invalid prompt key: {format_prompt_key}. Please use a valid key or provide a custom prompt.'}), 400
 
-    current_app.logger.info(f"Formatting text for doc {doc_id} using prompt key: {format_prompt_key or 'custom'}")
+    logger.info(f"Formatting text for doc {doc_id} using prompt key: {format_prompt_key or 'custom'}")
     formatted_text_result = call_llm(format_prompt_key, text_to_format, custom_prompt_text=custom_prompt_text)
 
     if formatted_text_result.startswith("Error:"):
@@ -576,7 +571,7 @@ def translate_text(doc_id): # Renamed from /document/<doc_id>/format
     if not custom_prompt_text and (not translation_prompt_key or translation_prompt_key not in DEFAULT_PROMPT_KEYS):
         return jsonify({'error': f'Invalid or missing prompt key for translation. Please select a valid translation prompt or provide a custom one.'}), 400
     
-    current_app.logger.info(f"Translating text for doc {doc_id} using prompt: {translation_prompt_key or 'custom'}")
+    logger.info(f"Translating text for doc {doc_id} using prompt: {translation_prompt_key or 'custom'}")
     translated_text_result = call_llm(translation_prompt_key, text_to_translate, custom_prompt_text=custom_prompt_text)
 
     if translated_text_result.startswith("Error:"): # Check if LLM call returned an error string
