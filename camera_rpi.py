@@ -164,11 +164,11 @@ class RPiCamera:
         try:
             with self._camera_lock:
                 if enabled:
-                    self._camera.set_controls({"AfMode": "Auto"})
-                    logger.info("Autofocus enabled (AfMode: Auto)")
+                    self._camera.set_controls({"AfMode": 1})  # 1 = Auto
+                    logger.info("Autofocus enabled (AfMode: 1/Auto)")
                 else:
-                    self._camera.set_controls({"AfMode": "Manual"})
-                    logger.info("Autofocus disabled (AfMode: Manual)")
+                    self._camera.set_controls({"AfMode": 0})  # 0 = Manual
+                    logger.info("Autofocus disabled (AfMode: 0/Manual)")
             return True
         except Exception as e:
             logger.error(f"Failed to set autofocus: {e}")

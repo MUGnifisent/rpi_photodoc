@@ -80,7 +80,7 @@
         z-index: 10;
     }
     .button.upload-flat {
-        background: #2563eb;
+        background: #ff8800;
         color: #fff;
         border: none;
         border-radius: 6px;
@@ -90,11 +90,15 @@
         padding: 0.75em 1.5em;
         transition: background 0.2s, box-shadow 0.2s;
         margin-top: 1em;
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        text-align: center;
     }
     .button.upload-flat:hover, .button.upload-flat:focus {
-        background: #1d4ed8;
+        background: #ff6a00;
         color: #fff;
-        box-shadow: 0 2px 8px 0 rgba(37,99,235,0.10);
+        box-shadow: 0 2px 8px 0 rgba(255,136,0,0.10);
     }
     .autofocus-controls {
         display: flex;
@@ -107,6 +111,67 @@
         font-size: 0.95em;
         color: #6ee7b7;
         margin-left: 0.5em;
+    }
+    .upload-box-label {
+        color: #e0e0e0;
+        font-weight: 600;
+        margin-bottom: 0.5em;
+        display: block;
+        text-align: left;
+    }
+    .custom-file-upload {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: #1de9b6;
+        border-radius: 8px;
+        padding: 1.2em 0.5em 0.7em 0.5em;
+        cursor: pointer;
+        transition: background 0.2s;
+        border: none;
+        margin-bottom: 0.5em;
+        color: #222;
+        font-size: 1.1em;
+        font-weight: 500;
+        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.08);
+        width: 100%;
+        max-width: 100%;
+    }
+    .custom-file-upload:hover, .custom-file-upload:focus {
+        background: #13bfa6;
+        color: #111;
+    }
+    .custom-file-upload .file-icon {
+        font-size: 1.5em;
+        margin-bottom: 0.2em;
+    }
+    .file-input {
+        display: none;
+    }
+    .file-name {
+        color: #e0e0e0;
+        background: #181818;
+        border: 1px solid #333;
+        border-radius: 0 0 8px 8px;
+        padding: 0.5em 1em;
+        width: 100%;
+        text-align: center;
+        font-size: 1em;
+        margin-top: -0.2em;
+        margin-bottom: 1em;
+        box-sizing: border-box;
+    }
+    .box#upload-box {
+        background: #181818;
+        border-radius: 10px;
+        box-shadow: 0 2px 12px 0 rgba(0,0,0,0.12);
+        padding: 2.5em 2em 2em 2em;
+    }
+    .box#upload-box h1,
+    .box#upload-box p,
+    .box#upload-box label,
+    .box#upload-box .file-name {
+        color: #e0e0e0;
     }
 </style>
 {% endblock %}
@@ -131,20 +196,15 @@
             
             <form method="POST" action="{{ url_for('main.process_upload') }}" enctype="multipart/form-data" id="upload-form">
                 <div class="field">
-                    <label class="label">Image File</label>
-                    <div class="file is-primary has-name is-boxed is-fullwidth">
-                        <label class="file-label">
-                            <input class="file-input" type="file" name="file" accept="image/png, image/jpeg, image/webp" id="file-upload-input">
-                            <span class="file-cta">
-                                <span class="file-icon"><i class="fas fa-upload"></i></span>
-                                <span class="file-label">Choose a file…</span>
-                            </span>
-                            <span class="file-name">No file selected</span>
-                        </label>
-                    </div>
+                    <label class="upload-box-label" for="file-upload-input">Image File</label>
+                    <label class="custom-file-upload" tabindex="0">
+                        <span class="file-icon"><i class="fas fa-upload"></i></span>
+                        <span class="file-label">Choose a file...</span>
+                        <input class="file-input" type="file" name="file" accept="image/png, image/jpeg, image/webp" id="file-upload-input">
+                    </label>
+                    <span class="file-name">No file selected</span>
                 </div>
-                 <div id="upload-form-error-placeholder" class="mt-2"></div> <!-- For JS-based errors -->
-
+                <div id="upload-form-error-placeholder" class="mt-2"></div>
                 <div class="field mt-5">
                     <div class="control has-text-centered">
                         <button type="submit" class="button upload-flat is-fullwidth is-medium" id="upload-submit-button">
