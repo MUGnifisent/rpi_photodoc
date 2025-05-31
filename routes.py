@@ -183,34 +183,40 @@ def stop_camera_stream():
 
 def gen_camera_feed():
     """Video streaming generator function."""
-    current_app.logger.info("gen_camera_feed called.") # New log
+    # Capture the logger from current_app while the app context is available
+    logger = current_app.logger 
+    # It's also possible to capture the app itself if more app features are needed:
+    # app = current_app._get_current_object()
+    # logger = app.logger
+
+    logger.info("gen_camera_feed called.")
     if not rpi_camera_instance.is_available():
-        current_app.logger.warning("gen_camera_feed: Camera feed requested but camera not available.")
+        logger.warning("gen_camera_feed: Camera feed requested but camera not available.")
         return
     
     if not rpi_camera_instance._is_streaming:
-        current_app.logger.warning("gen_camera_feed: Camera feed requested but stream not active. Client should start stream first.")
+        logger.warning("gen_camera_feed: Camera feed requested but stream not active. Client should start stream first.")
         return
 
-    current_app.logger.info("gen_camera_feed: Starting frame loop.") # New log
-    frames_yielded = 0 # New log
+    logger.info("gen_camera_feed: Starting frame loop.")
+    frames_yielded = 0
     while True:
         frame = rpi_camera_instance.get_frame()
         if frame is None:
-            # current_app.logger.debug("gen_camera_feed: get_frame returned None, sleeping.") # Potentially too noisy
+            # logger.debug("gen_camera_feed: get_frame returned None, sleeping.")
             time.sleep(0.01)
             continue
         
         if not isinstance(frame, bytes):
-            current_app.logger.error("gen_camera_feed: Frame is not bytes, skipping frame.")
+            logger.error("gen_camera_feed: Frame is not bytes, skipping frame.")
             continue
 
-        # current_app.logger.debug(f"gen_camera_feed: Yielding frame {frames_yielded + 1} of size {len(frame)} bytes.") # Potentially too noisy
+        # logger.debug(f"gen_camera_feed: Yielding frame {frames_yielded + 1} of size {len(frame)} bytes.")
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-        frames_yielded += 1 # New log
+        frames_yielded += 1
         if frames_yielded == 1: # Log only for the first frame to reduce noise
-            current_app.logger.info(f"gen_camera_feed: Successfully yielded first frame of size {len(frame)} bytes.")
+            logger.info(f"gen_camera_feed: Successfully yielded first frame of size {len(frame)} bytes.")
 
 @main_bp.route('/camera_feed')
 @login_required
