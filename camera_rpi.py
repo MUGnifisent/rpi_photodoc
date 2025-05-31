@@ -89,16 +89,22 @@ class RPiCamera:
 
     def get_frame(self):
         if not self.is_available() or not self._is_streaming:
+            logger.warning("get_frame called but camera not available or not streaming.")
             return None
         try:
             with self._streaming_output.condition: # Ensure thread-safe access to frame
                 if self._streaming_output.condition.wait(timeout=0.1): # Wait for a new frame with timeout
-                    return self._streaming_output.frame
+                    frame = self._streaming_output.frame
+                    if frame:
+                         logger.info(f"get_frame: Returning a frame of size {len(frame)} bytes.")
+                    else:
+                         logger.warning("get_frame: Condition met, but frame is None.")
+                    return frame
                 else:
-                    # logger.debug("Timeout waiting for frame, none available.") # Can be noisy
+                    logger.warning("get_frame: Timeout waiting for frame condition, no new frame.") 
                     return None 
         except Exception as e:
-            logger.error(f"Error getting frame: {e}")
+            logger.error(f"Error getting frame: {e}", exc_info=True)
             return None
 
     def capture_image(self, filepath):

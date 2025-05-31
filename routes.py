@@ -183,43 +183,34 @@ def stop_camera_stream():
 
 def gen_camera_feed():
     """Video streaming generator function."""
+    current_app.logger.info("gen_camera_feed called.") # New log
     if not rpi_camera_instance.is_available():
-        current_app.logger.warning("Camera feed requested but camera not available.")
-        # Could return a placeholder image bytes here
+        current_app.logger.warning("gen_camera_feed: Camera feed requested but camera not available.")
         return
     
     if not rpi_camera_instance._is_streaming:
-        current_app.logger.info("Camera not streaming, attempting to start for feed.")
-        # Try to start, but this might be better handled by a client-side button
-        # For now, assume client calls /start_camera_stream first
-        # rpi_camera_instance.start_streaming() 
-        # if not rpi_camera_instance._is_streaming: # If it still failed
-        #    return # or yield placeholder
-        current_app.logger.warning("Camera feed requested but stream not active. Client should start stream first.")
-        # You could yield a static placeholder image if the stream isn't active
-        # For example, read a placeholder image and yield it.
-        # with open('static/img/camera_placeholder.png', 'rb') as f:
-        #     placeholder_frame = f.read()
-        # yield (b'--frame\\r\\n'
-        #        b'Content-Type: image/png\\r\\n\\r\\n' + placeholder_frame + b'\\r\\n')
+        current_app.logger.warning("gen_camera_feed: Camera feed requested but stream not active. Client should start stream first.")
         return
 
+    current_app.logger.info("gen_camera_feed: Starting frame loop.") # New log
+    frames_yielded = 0 # New log
     while True:
         frame = rpi_camera_instance.get_frame()
         if frame is None:
-            # If get_frame returns None consistently, streaming might have an issue
-            # or no new frame is available yet. Add a small delay.
-            time.sleep(0.01) # Small delay to prevent tight loop on None
-            # current_app.logger.debug("Waiting for camera frame...") # can be noisy
+            # current_app.logger.debug("gen_camera_feed: get_frame returned None, sleeping.") # Potentially too noisy
+            time.sleep(0.01)
             continue
         
-        # Ensure frame is bytes, JpegEncoder should provide this
         if not isinstance(frame, bytes):
-            current_app.logger.error("Frame is not bytes, skipping frame.")
+            current_app.logger.error("gen_camera_feed: Frame is not bytes, skipping frame.")
             continue
 
-        yield (b'--frame\\r\\n'
-               b'Content-Type: image/jpeg\\r\\n\\r\\n' + frame + b'\\r\\n')
+        # current_app.logger.debug(f"gen_camera_feed: Yielding frame {frames_yielded + 1} of size {len(frame)} bytes.") # Potentially too noisy
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        frames_yielded += 1 # New log
+        if frames_yielded == 1: # Log only for the first frame to reduce noise
+            current_app.logger.info(f"gen_camera_feed: Successfully yielded first frame of size {len(frame)} bytes.")
 
 @main_bp.route('/camera_feed')
 @login_required
