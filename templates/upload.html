@@ -31,31 +31,34 @@
     }
     .camera-feed-container {
         position: relative;
-        display: none; /* Only show when live */
-        align-items: center;
+        display: flex;
         justify-content: center;
-        background-color: #2c2c2c;
-        min-height: 240px;
-        width: 100%;
-        border-radius: 4px;
-        border: 1px solid #4a4a4a;
-        overflow: hidden;
-        transition: box-shadow 0.2s;
+        align-items: center;
+        background: #222;
+        border-radius: 10px;
+        border: 1.5px solid #333;
+        box-shadow: 0 2px 12px 0 rgba(0,0,0,0.10);
+        margin: 0 auto 1.5em auto;
+        padding: 0.5em;
+        width: auto;
+        min-width: 0;
+        min-height: 0;
+        max-width: 100%;
+        max-height: 70vh;
     }
     .camera-feed-container.visible {
         display: flex;
-        box-shadow: 0 2px 12px 0 rgba(0,0,0,0.12);
     }
     .camera-feed {
+        display: none;
         max-width: 100%;
-        max-height: 240px;
+        max-height: 60vh;
         width: auto;
         height: auto;
-        margin-bottom: 0;
-        border-radius: 4px;
-        display: none;
+        border-radius: 8px;
         object-fit: contain;
-        background: #222;
+        background: #181818;
+        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
         transition: transform 0.3s;
     }
     .camera-feed.visible {
@@ -63,8 +66,8 @@
     }
     .camera-feed.portrait {
         transform: rotate(90deg);
-        max-width: 240px;
-        max-height: 100%;
+        max-width: 60vh;
+        max-height: 100vw;
     }
     .camera-loading-overlay {
         position: absolute;
@@ -83,17 +86,21 @@
         background: #ff8800;
         color: #fff;
         border: none;
-        border-radius: 6px;
+        border-radius: 8px;
         box-shadow: none;
         font-weight: 600;
         font-size: 1.1rem;
-        padding: 0.75em 1.5em;
+        padding: 0.9em 0;
         transition: background 0.2s, box-shadow 0.2s;
-        margin-top: 1em;
-        display: block;
+        margin-top: 1.2em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         width: 100%;
         max-width: 100%;
         text-align: center;
+        gap: 0.7em;
+        letter-spacing: 0.01em;
     }
     .button.upload-flat:hover, .button.upload-flat:focus {
         background: #ff6a00;
@@ -121,29 +128,32 @@
     }
     .custom-file-upload {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
+        justify-content: center;
         background: #1de9b6;
-        border-radius: 8px;
-        padding: 1.2em 0.5em 0.7em 0.5em;
+        border-radius: 999px;
+        padding: 0.7em 2.2em;
         cursor: pointer;
         transition: background 0.2s;
         border: none;
-        margin-bottom: 0.5em;
+        margin-bottom: 1.2em;
         color: #222;
-        font-size: 1.1em;
+        font-size: 1.08em;
         font-weight: 500;
         box-shadow: 0 2px 8px 0 rgba(0,0,0,0.08);
-        width: 100%;
+        width: auto;
+        min-width: 180px;
         max-width: 100%;
+        gap: 0.7em;
     }
     .custom-file-upload:hover, .custom-file-upload:focus {
         background: #13bfa6;
         color: #111;
     }
     .custom-file-upload .file-icon {
-        font-size: 1.5em;
-        margin-bottom: 0.2em;
+        font-size: 1.3em;
+        margin-bottom: 0;
     }
     .file-input {
         display: none;
@@ -151,19 +161,25 @@
     .file-name {
         color: #e0e0e0;
         background: #181818;
-        border: 1px solid #333;
-        border-radius: 0 0 8px 8px;
-        padding: 0.5em 1em;
+        border: 1.5px solid #333;
+        border-radius: 10px;
+        padding: 1em 1.2em;
         width: 100%;
         text-align: center;
-        font-size: 1em;
-        margin-top: -0.2em;
-        margin-bottom: 1em;
+        font-size: 1.08em;
+        margin-bottom: 1.2em;
+        margin-top: 0;
         box-sizing: border-box;
+        min-height: 2.5em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        letter-spacing: 0.01em;
+        box-shadow: 0 1px 4px 0 rgba(0,0,0,0.07);
     }
     .box#upload-box {
         background: #181818;
-        border-radius: 10px;
+        border-radius: 14px;
         box-shadow: 0 2px 12px 0 rgba(0,0,0,0.12);
         padding: 2.5em 2em 2em 2em;
     }
@@ -172,6 +188,9 @@
     .box#upload-box label,
     .box#upload-box .file-name {
         color: #e0e0e0;
+    }
+    .upload-page-container form .field {
+        margin-bottom: 0.5em;
     }
 </style>
 {% endblock %}
