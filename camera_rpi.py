@@ -27,6 +27,7 @@ class RPiCamera:
     _is_streaming = False
     _is_initialized = False
     _camera_lock = Condition() # For thread-safe access to camera operations if needed
+    portrait_mode = False  # New: portrait mode flag
 
     def __new__(cls):
         with cls._camera_lock:
@@ -34,17 +35,18 @@ class RPiCamera:
                 cls._instance = super(RPiCamera, cls).__new__(cls)
                 try:
                     cls._camera = Picamera2()
-                    # Keep main high for capture, lores for streaming
+                    # Maximal preview (stream) resolution for Camera Module 3: 1920x1080 (practical for streaming)
+                    # Maximal still resolution: 4608x2592
                     cls.video_config = cls._camera.create_video_configuration(
-                        main={"size": (1280, 720), "format": "RGB888"}, # Preview stream
-                        lores={"size": (640, 480), "format": "YUV420"},   # Low-res for MJPEG encoder
-                        controls={"FrameRate": 30} # Specify framerate
+                        main={"size": (1920, 1080), "format": "RGB888"},
+                        lores={"size": (1280, 720), "format": "YUV420"},
+                        controls={"FrameRate": 30}
                     )
                     cls._camera.configure(cls.video_config)
                     cls._streaming_output = StreamingOutput()
                     cls._is_initialized = True
                     logger.info("RPiCamera initialized successfully.")
-                except Exception as e: # Broad exception for RPi-specific import/init errors
+                except Exception as e:
                     logger.error(f"Critical: Failed to initialize Picamera2: {e}. RPi Camera features will be unavailable. Ensure libcamera is running and camera is connected.")
                     cls._camera = None
                     cls._is_initialized = False
@@ -52,6 +54,14 @@ class RPiCamera:
 
     def is_available(self):
         return self._is_initialized and self._camera is not None
+
+    def set_portrait_mode(self, enabled: bool):
+        with self._camera_lock:
+            self.portrait_mode = enabled
+            logger.info(f"Portrait mode set to {enabled}. Restarting stream if active.")
+            if self._is_streaming:
+                self.stop_streaming()
+                self.start_streaming()
 
     def start_streaming(self):
         if not self.is_available():
@@ -62,13 +72,16 @@ class RPiCamera:
             return True
         try:
             with self._camera_lock:
-                # Use lores stream for JPEG encoding for the feed
                 encoder = JpegEncoder(q=70)
+                # Use Transform for portrait mode
+                transform = Transform()
+                if self.portrait_mode:
+                    transform = Transform(rotation=90)
                 # Output to our custom streaming output, using the lores stream
-                self._camera.start_encoder(encoder, FileOutput(self._streaming_output), name='lores')
+                self._camera.start_encoder(encoder, FileOutput(self._streaming_output), name='lores', transform=transform)
                 self._camera.start()
                 self._is_streaming = True
-                logger.info("Camera streaming started on lores stream.")
+                logger.info(f"Camera streaming started on lores stream. Portrait mode: {self.portrait_mode}")
             return True
         except Exception as e:
             logger.error(f"Could not start camera streaming: {e}")
@@ -111,25 +124,21 @@ class RPiCamera:
         if not self.is_available():
             logger.error("Camera not initialized or available for capture.")
             raise RuntimeError("Camera not initialized or available.")
-        
         was_streaming = self._is_streaming
         try:
             with self._camera_lock:
                 if was_streaming:
                     logger.info("Stopping stream for high-resolution capture.")
-                    self.stop_streaming() # Stop lores streaming for a high-res capture
-                
-                # Create a higher-resolution configuration for capture if needed, or use main stream of video_config
-                # For simplicity, Picamera2 can capture from the main stream directly if it's high enough res
-                # Or, switch to a dedicated still mode:
+                    self.stop_streaming()
                 logger.info("Configuring for still capture...")
+                # Maximal still resolution for Camera Module 3: 4608x2592
+                transform = Transform()
+                if self.portrait_mode:
+                    transform = Transform(rotation=90)
                 still_config = self._camera.create_still_configuration(
-                    main={"size": (1920, 1080)}, # Capture resolution
-                    # transform=Transform(hflip=1, vflip=1) # if camera is upside down
+                    main={"size": (4608, 2592)},
+                    transform=transform
                 )
-                # self._camera.configure(still_config) # Configure for still capture
-                # job = self._camera.capture_file(filepath, wait=False) # Capture without wait if app needs to be responsive
-                # self._camera.wait(job) # Wait for capture to complete
                 self._camera.switch_mode_and_capture_file(still_config, filepath, wait=True)
                 logger.info(f"Image captured and saved to {filepath}")
             return True
@@ -139,9 +148,55 @@ class RPiCamera:
         finally:
             if was_streaming:
                 logger.info("Restarting camera stream after capture.")
-                # Reconfigure back to video mode before restarting encoder if mode was switched
-                # self._camera.configure(self.video_config) 
                 self.start_streaming()
+
+    def set_autofocus(self, enabled: bool):
+        if not self.is_available():
+            logger.warning("set_autofocus called but camera not available.")
+            return False
+        try:
+            with self._camera_lock:
+                if enabled:
+                    self._camera.set_controls({"AfMode": "Auto"})
+                    logger.info("Autofocus enabled (AfMode: Auto)")
+                else:
+                    self._camera.set_controls({"AfMode": "Manual"})
+                    logger.info("Autofocus disabled (AfMode: Manual)")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to set autofocus: {e}")
+            return False
+
+    def trigger_autofocus(self):
+        if not self.is_available():
+            logger.warning("trigger_autofocus called but camera not available.")
+            return False
+        try:
+            with self._camera_lock:
+                self._camera.set_controls({"AfTrigger": "Start"})
+                logger.info("One-shot autofocus triggered (AfTrigger: Start)")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to trigger autofocus: {e}")
+            return False
+
+    def get_autofocus_state(self):
+        if not self.is_available():
+            return {"available": False}
+        try:
+            # Query current autofocus mode and position
+            af_mode = self._camera.capture_metadata().get('AfMode', None)
+            af_state = self._camera.capture_metadata().get('AfState', None)
+            af_position = self._camera.capture_metadata().get('LensPosition', None)
+            return {
+                "available": True,
+                "af_mode": af_mode,
+                "af_state": af_state,
+                "af_position": af_position
+            }
+        except Exception as e:
+            logger.error(f"Failed to get autofocus state: {e}")
+            return {"available": False, "error": str(e)}
 
 # Global instance for easy access from Flask routes
 # This is generally okay for Picamera2 as it manages its own singleton internally for the camera hardware.

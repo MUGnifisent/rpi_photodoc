@@ -581,8 +581,35 @@ def translate_text(doc_id): # Renamed from /document/<doc_id>/format
         
     return jsonify({'translated_text': translated_text_result})
 
+@main_bp.route('/toggle_camera_orientation', methods=['POST'])
+@login_required
+def toggle_camera_orientation():
+    data = request.get_json()
+    enabled = data.get('enabled', False)
+    rpi_camera_instance.set_portrait_mode(bool(enabled))
+    return jsonify({'success': True, 'portrait_mode': rpi_camera_instance.portrait_mode})
+
 # Consider adding a route to delete a specific photo from a document (and optionally from the system if not used elsewhere)
 # @main_bp.route('/document/<doc_id>/photo/<photo_id>/remove', methods=['POST'])
 
 # Consider adding a route to delete a photo entirely from the system
-# @main_bp.route('/photo/<photo_id>/delete', methods=['POST']) 
+# @main_bp.route('/photo/<photo_id>/delete', methods=['POST'])
+
+@main_bp.route('/camera_autofocus_state', methods=['GET'])
+@login_required
+def camera_autofocus_state():
+    return jsonify(rpi_camera_instance.get_autofocus_state())
+
+@main_bp.route('/camera_set_autofocus', methods=['POST'])
+@login_required
+def camera_set_autofocus():
+    data = request.get_json()
+    enabled = data.get('enabled', False)
+    success = rpi_camera_instance.set_autofocus(bool(enabled))
+    return jsonify({'success': success, 'enabled': enabled})
+
+@main_bp.route('/camera_trigger_autofocus', methods=['POST'])
+@login_required
+def camera_trigger_autofocus():
+    success = rpi_camera_instance.trigger_autofocus()
+    return jsonify({'success': success}) 

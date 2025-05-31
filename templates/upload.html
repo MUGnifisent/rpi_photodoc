@@ -31,7 +31,7 @@
     }
     .camera-feed-container {
         position: relative;
-        display: flex;
+        display: none; /* Only show when live */
         align-items: center;
         justify-content: center;
         background-color: #2c2c2c;
@@ -40,6 +40,11 @@
         border-radius: 4px;
         border: 1px solid #4a4a4a;
         overflow: hidden;
+        transition: box-shadow 0.2s;
+    }
+    .camera-feed-container.visible {
+        display: flex;
+        box-shadow: 0 2px 12px 0 rgba(0,0,0,0.12);
     }
     .camera-feed {
         max-width: 100%;
@@ -48,12 +53,18 @@
         height: auto;
         margin-bottom: 0;
         border-radius: 4px;
-        display: none; /* Default: hidden, shown only when live */
+        display: none;
         object-fit: contain;
         background: #222;
+        transition: transform 0.3s;
     }
     .camera-feed.visible {
         display: block;
+    }
+    .camera-feed.portrait {
+        transform: rotate(90deg);
+        max-width: 240px;
+        max-height: 100%;
     }
     .camera-loading-overlay {
         position: absolute;
@@ -67,6 +78,35 @@
         color: #9a9a9a;
         font-style: italic;
         z-index: 10;
+    }
+    .button.upload-flat {
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        box-shadow: none;
+        font-weight: 600;
+        font-size: 1.1rem;
+        padding: 0.75em 1.5em;
+        transition: background 0.2s, box-shadow 0.2s;
+        margin-top: 1em;
+    }
+    .button.upload-flat:hover, .button.upload-flat:focus {
+        background: #1d4ed8;
+        color: #fff;
+        box-shadow: 0 2px 8px 0 rgba(37,99,235,0.10);
+    }
+    .autofocus-controls {
+        display: flex;
+        gap: 1em;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 1em;
+    }
+    .autofocus-status {
+        font-size: 0.95em;
+        color: #6ee7b7;
+        margin-left: 0.5em;
     }
 </style>
 {% endblock %}
@@ -106,8 +146,8 @@
                  <div id="upload-form-error-placeholder" class="mt-2"></div> <!-- For JS-based errors -->
 
                 <div class="field mt-5">
-                    <div class="control">
-                        <button type="submit" class="button is-primary is-fullwidth is-medium" id="upload-submit-button">
+                    <div class="control has-text-centered">
+                        <button type="submit" class="button upload-flat is-fullwidth is-medium" id="upload-submit-button">
                             <span class="icon"><i class="fas fa-cogs"></i></span>
                             <span>Upload and Process</span>
                         </button>
@@ -120,6 +160,21 @@
         <div class="box mt-5" id="rpi-camera-section">
             <h2 class="title is-4 has-text-centered">RPi Camera</h2>
             <p class="subtitle is-6 has-text-centered has-text-grey-light mb-4" id="camera-status-text">Checking camera status...</p>
+            <div class="has-text-centered mb-3 autofocus-controls">
+                <button class="button is-small is-rounded" id="toggle-portrait-btn" type="button">
+                    <span class="icon"><i class="fas fa-mobile-alt"></i></span>
+                    <span id="portrait-btn-label">Portrait Mode: Off</span>
+                </button>
+                <button class="button is-small is-rounded" id="toggle-af-btn" type="button">
+                    <span class="icon"><i class="fas fa-bullseye"></i></span>
+                    <span id="af-btn-label">Autofocus: Off</span>
+                </button>
+                <button class="button is-small is-rounded" id="oneshot-af-btn" type="button">
+                    <span class="icon"><i class="fas fa-crosshairs"></i></span>
+                    <span>One-Shot AF</span>
+                </button>
+                <span class="autofocus-status" id="af-status"></span>
+            </div>
             <div class="has-text-centered camera-feed-container" id="camera-feed-container">
                  <img src="" alt="Camera Feed" id="camera-feed-img" class="camera-feed"/>
                  <div class="camera-loading-overlay" id="camera-loading-overlay" style="display: none;">Loading camera...</div>
@@ -217,29 +272,61 @@ document.addEventListener('DOMContentLoaded', () => {
         const capturePhotoButton = document.getElementById('capture-photo-btn');
         const cameraStatusText = document.getElementById('camera-status-text');
         const captureMessagePlaceholder = document.getElementById('capture-message-placeholder');
-        const defaultPlaceholderSrc = "{{ url_for('static', filename='img/image_placeholder.png') }}";
+        const togglePortraitBtn = document.getElementById('toggle-portrait-btn');
+        const portraitBtnLabel = document.getElementById('portrait-btn-label');
+        const toggleAfBtn = document.getElementById('toggle-af-btn');
+        const afBtnLabel = document.getElementById('af-btn-label');
+        const oneshotAfBtn = document.getElementById('oneshot-af-btn');
+        const afStatus = document.getElementById('af-status');
+        let portraitMode = false;
+        let afEnabled = false;
         let streamActive = false;
 
+        function updatePortraitButton() {
+            if (portraitMode) {
+                portraitBtnLabel.textContent = 'Portrait Mode: On';
+                cameraFeedImg.classList.add('portrait');
+            } else {
+                portraitBtnLabel.textContent = 'Portrait Mode: Off';
+                cameraFeedImg.classList.remove('portrait');
+            }
+        }
+        togglePortraitBtn.addEventListener('click', async () => {
+            portraitMode = !portraitMode;
+            updatePortraitButton();
+            try {
+                await fetch("{{ url_for('main.toggle_camera_orientation') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: portraitMode })
+                });
+            } catch (e) {
+                displayNotification('Failed to toggle portrait mode.', 'danger', captureMessagePlaceholder);
+            }
+            if (streamActive) {
+                showLiveFeed();
+            }
+        });
         function showCameraLoading(text = "Loading camera...") {
+            cameraFeedContainer.classList.remove('visible');
             cameraFeedImg.classList.remove('visible');
             cameraFeedImg.src = '';
             cameraLoadingOverlay.textContent = text;
             cameraLoadingOverlay.style.display = 'flex';
-            cameraFeedContainer.style.minHeight = '240px';
         }
-
         function showCameraPlaceholder() {
-            cameraLoadingOverlay.style.display = 'none';
+            cameraFeedContainer.classList.remove('visible');
             cameraFeedImg.classList.remove('visible');
             cameraFeedImg.src = '';
-            cameraFeedContainer.style.minHeight = '240px';
-        }
-
-        function showLiveFeed() {
             cameraLoadingOverlay.style.display = 'none';
+        }
+        function showLiveFeed() {
+            cameraFeedContainer.classList.add('visible');
             cameraFeedImg.src = "{{ url_for('main.camera_feed') }}?_nocache=" + new Date().getTime();
             cameraFeedImg.classList.add('visible');
-            cameraFeedContainer.style.minHeight = '240px';
+            cameraLoadingOverlay.style.display = 'none';
+            updatePortraitButton();
+            updateAfStateUI();
         }
 
         async function checkCameraStatus() {
@@ -428,8 +515,47 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        async function updateAfStateUI() {
+            try {
+                const resp = await fetch("{{ url_for('main.camera_autofocus_state') }}");
+                const data = await resp.json();
+                if (data.available) {
+                    afEnabled = (data.af_mode === 'Auto');
+                    afBtnLabel.textContent = afEnabled ? 'Autofocus: On' : 'Autofocus: Off';
+                    toggleAfBtn.classList.toggle('is-success', afEnabled);
+                    toggleAfBtn.classList.toggle('is-light', !afEnabled);
+                    afStatus.textContent = data.af_state ? `State: ${data.af_state}` : '';
+                } else {
+                    afBtnLabel.textContent = 'Autofocus: N/A';
+                    afStatus.textContent = '';
+                }
+            } catch (e) {
+                afBtnLabel.textContent = 'Autofocus: Err';
+                afStatus.textContent = '';
+            }
+        }
+        toggleAfBtn.addEventListener('click', async () => {
+            afEnabled = !afEnabled;
+            afBtnLabel.textContent = '...';
+            await fetch("{{ url_for('main.camera_set_autofocus') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: afEnabled })
+            });
+            setTimeout(updateAfStateUI, 400); // Give camera time to update
+        });
+        oneshotAfBtn.addEventListener('click', async () => {
+            oneshotAfBtn.classList.add('is-loading');
+            await fetch("{{ url_for('main.camera_trigger_autofocus') }}", { method: 'POST' });
+            setTimeout(() => {
+                oneshotAfBtn.classList.remove('is-loading');
+                updateAfStateUI();
+            }, 600);
+        });
+
         // Initial check
         checkCameraStatus();
+        updateAfStateUI();
     } // End of camera_available block
 
     // Generic handler for dismissing server-side flash messages (if any remain)
