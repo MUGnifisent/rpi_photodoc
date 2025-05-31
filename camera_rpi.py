@@ -72,13 +72,20 @@ class RPiCamera:
             return True
         try:
             with self._camera_lock:
-                encoder = JpegEncoder(q=70)
-                # Use Transform for portrait mode
+                # Set up transform for portrait mode
                 transform = Transform()
                 if self.portrait_mode:
                     transform = Transform(rotation=90)
-                # Output to our custom streaming output, using the lores stream
-                self._camera.start_encoder(encoder, FileOutput(self._streaming_output), name='lores', transform=transform)
+                # Re-create and apply video configuration with the correct transform
+                self.video_config = self._camera.create_video_configuration(
+                    main={"size": (1920, 1080), "format": "RGB888"},
+                    lores={"size": (1280, 720), "format": "YUV420"},
+                    transform=transform,
+                    controls={"FrameRate": 30}
+                )
+                self._camera.configure(self.video_config)
+                encoder = JpegEncoder(q=70)
+                self._camera.start_encoder(encoder, FileOutput(self._streaming_output), name='lores')
                 self._camera.start()
                 self._is_streaming = True
                 logger.info(f"Camera streaming started on lores stream. Portrait mode: {self.portrait_mode}")
