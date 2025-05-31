@@ -198,15 +198,17 @@ def gen_camera_feed():
     logger.info("gen_camera_feed: Starting frame loop.")
     frames_yielded = 0
     while True:
+        # Check camera state inside the loop
+        if not rpi_camera_instance.is_available() or not rpi_camera_instance._is_streaming:
+            logger.warning("gen_camera_feed: Camera became unavailable or stopped streaming. Exiting feed loop.")
+            break
         frame = rpi_camera_instance.get_frame()
         if frame is None:
             time.sleep(0.01)
             continue
-        
         if not isinstance(frame, bytes):
             logger.error("gen_camera_feed: Frame is not bytes, skipping frame.")
             continue
-
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
         frames_yielded += 1
