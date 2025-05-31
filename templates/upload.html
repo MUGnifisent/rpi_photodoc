@@ -192,6 +192,21 @@
     .upload-page-container form .field {
         margin-bottom: 0.5em;
     }
+    .autofocus-controls button#toggle-af-btn.autofocus-on {
+        background: #10b981;
+        color: #fff;
+        border: none;
+        box-shadow: 0 2px 8px 0 rgba(16,185,129,0.10);
+    }
+    .autofocus-controls button#toggle-af-btn.autofocus-off {
+        background: #232323;
+        color: #e0e0e0;
+        border: none;
+        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+    }
+    .autofocus-controls button#toggle-af-btn {
+        transition: background 0.2s, color 0.2s;
+    }
 </style>
 {% endblock %}
 
@@ -599,17 +614,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const resp = await fetch("{{ url_for('main.camera_autofocus_state') }}");
                 const data = await resp.json();
                 if (data.available) {
-                    afEnabled = (data.af_mode === 'Auto');
+                    afEnabled = (data.af_mode === 2 || data.af_mode === 'Continuous');
                     afBtnLabel.textContent = afEnabled ? 'Autofocus: On' : 'Autofocus: Off';
-                    toggleAfBtn.classList.toggle('is-success', afEnabled);
-                    toggleAfBtn.classList.toggle('is-light', !afEnabled);
+                    toggleAfBtn.classList.toggle('autofocus-on', afEnabled);
+                    toggleAfBtn.classList.toggle('autofocus-off', !afEnabled);
                     afStatus.textContent = data.af_state ? `State: ${data.af_state}` : '';
                 } else {
                     afBtnLabel.textContent = 'Autofocus: N/A';
+                    toggleAfBtn.classList.remove('autofocus-on', 'autofocus-off');
                     afStatus.textContent = '';
                 }
             } catch (e) {
                 afBtnLabel.textContent = 'Autofocus: Err';
+                toggleAfBtn.classList.remove('autofocus-on', 'autofocus-off');
                 afStatus.textContent = '';
             }
         }
