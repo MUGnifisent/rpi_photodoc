@@ -248,28 +248,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch("{{ url_for('main.camera_status') }}");
                 const data = await response.json();
                 if (data.available) {
-                    cameraStatusText.textContent = "Camera detected. Ready.";
-                    startCameraButton.disabled = false;
+                    startCameraButton.disabled = false; // Enable if available
                     if (data.streaming) {
                         activateStreamUI();
+                        cameraStatusText.textContent = "Camera live."; // Update text here
                     } else {
-                        // Camera is available but not streaming, show placeholder
-                        deactivateStreamUI("Camera ready. Press Start.");
-                        showCameraPlaceholder(); 
+                        // Camera is available but not streaming
+                        showCameraPlaceholder();
+                        startCameraButton.style.display = 'block';
+                        stopCameraButton.style.display = 'none';
+                        capturePhotoButton.style.display = 'none'; // Hide capture button if not streaming
+                        capturePhotoButton.disabled = true;
+                        cameraStatusText.textContent = "Camera ready. Press Start.";
+                        streamActive = false;
                     }
                 } else {
                     cameraStatusText.textContent = data.message || "RPi Camera not available.";
-                    deactivateStreamUI(data.message || "RPi Camera not available.");
                     showCameraPlaceholder(); // Show placeholder if not available
+                    startCameraButton.style.display = 'block';
                     startCameraButton.disabled = true;
+                    stopCameraButton.style.display = 'none';
+                    capturePhotoButton.style.display = 'none';
                     capturePhotoButton.disabled = true;
+                    streamActive = false;
                 }
             } catch (error) {
                 console.error("Error checking camera status:", error);
-                deactivateStreamUI("Error checking camera status.");
+                cameraStatusText.textContent = "Error checking camera status.";
                 showCameraPlaceholder(); // Show placeholder on error
+                startCameraButton.style.display = 'block';
                 startCameraButton.disabled = true;
+                stopCameraButton.style.display = 'none';
+                capturePhotoButton.style.display = 'none';
                 capturePhotoButton.disabled = true;
+                streamActive = false;
             }
         }
 
@@ -281,24 +293,24 @@ document.addEventListener('DOMContentLoaded', () => {
             stopCameraButton.disabled = false;
             capturePhotoButton.style.display = 'block';
             capturePhotoButton.disabled = false;
-            cameraStatusText.textContent = "Camera live.";
+            cameraStatusText.textContent = "Camera live."; // Ensure text is set here too
             streamActive = true;
         }
 
         function deactivateStreamUI(statusText = "Camera stopped.") {
-            // if (cameraFeedImg.src !== defaultPlaceholderSrc) {
-            //      cameraFeedImg.src = defaultPlaceholderSrc;
-            // }
-            showCameraPlaceholder(); // Show placeholder when deactivated
+            showCameraPlaceholder();
             startCameraButton.style.display = 'block';
-            // startCameraButton.disabled = false; // Re-enable based on overall availability
+            // If camera was available, start button should be enabled by checkCameraStatus or its direct handling path.
+            // We only disable it if camera becomes unavailable.
+            // startCameraButton.disabled = !rpi_camera_instance.is_available(); // This logic is now in checkCameraStatus
+
             stopCameraButton.style.display = 'none';
             capturePhotoButton.style.display = 'none';
-            // capturePhotoButton.disabled = true;
+            capturePhotoButton.disabled = true; 
             cameraStatusText.textContent = statusText;
             streamActive = false;
-            // After deactivating, re-check overall status to set button states correctly
-            checkCameraStatus(); // This will re-evaluate startCameraButton.disabled
+            // DO NOT call checkCameraStatus() here to prevent recursion.
+            // The states of buttons should be managed by the function that led to deactivation or a fresh checkCameraStatus call.
         }
 
         startCameraButton.addEventListener('click', async () => {
@@ -331,28 +343,38 @@ document.addEventListener('DOMContentLoaded', () => {
             stopCameraButton.classList.add('is-loading');
             stopCameraButton.disabled = true;
             capturePhotoButton.disabled = true; // Disable capture while stopping
-            cameraStatusText.textContent = "Stopping camera...";
+            // cameraStatusText.textContent = "Stopping camera..."; // Replaced by showCameraLoading
+            showCameraLoading("Stopping camera...");
             try {
                 const response = await fetch("{{ url_for('main.stop_camera_stream') }}", { method: 'POST' });
                 const result = await response.json();
                 if (response.ok && result.success) {
-                    deactivateStreamUI("Camera stopped. Press Start to resume.");
+                    // When stopping, we go to a state where camera is ready but not streaming.
+                    // So, directly set that state rather than calling deactivateStreamUI which might call checkCameraStatus.
+                    showCameraPlaceholder();
+                    startCameraButton.style.display = 'block';
+                    startCameraButton.disabled = false; // Camera is still available
+                    stopCameraButton.style.display = 'none';
+                    capturePhotoButton.style.display = 'none';
+                    capturePhotoButton.disabled = true;
+                    cameraStatusText.textContent = "Camera stopped. Press Start to resume.";
+                    streamActive = false;
                 } else {
                     const errorMsg = "Failed to stop camera: " + (result.error || "Unknown error");
-                    // Don't call deactivateStreamUI here as stream might still be technically active or in weird state
                     cameraStatusText.textContent = errorMsg;
                     displayNotification(errorMsg, 'danger', captureMessagePlaceholder);
-                    // Re-enable buttons as stop failed, allow another attempt or start
                     stopCameraButton.disabled = false; 
-                    if(streamActive) capturePhotoButton.disabled = false;
+                    if(streamActive) capturePhotoButton.disabled = false; // Re-enable if stream was active
+                    else showCameraPlaceholder(); // Ensure placeholder if error and not streaming
                 }
             } catch (error) {
                 console.error("Error stopping camera:", error);
                 const errorMsg = "Error stopping camera: " + error.message;
                 cameraStatusText.textContent = errorMsg;
                 displayNotification(errorMsg, 'danger', captureMessagePlaceholder);
-                stopCameraButton.disabled = false; // Re-enable after error
+                stopCameraButton.disabled = false; 
                 if(streamActive) capturePhotoButton.disabled = false;
+                else showCameraPlaceholder();
             }
             stopCameraButton.classList.remove('is-loading');
         });
