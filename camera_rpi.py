@@ -164,8 +164,8 @@ class RPiCamera:
         try:
             with self._camera_lock:
                 if enabled:
-                    self._camera.set_controls({"AfMode": 1})  # 1 = Auto
-                    logger.info("Autofocus enabled (AfMode: 1/Auto)")
+                    self._camera.set_controls({"AfMode": 2})  # 2 = Continuous
+                    logger.info("Autofocus enabled (AfMode: 2/Continuous)")
                 else:
                     self._camera.set_controls({"AfMode": 0})  # 0 = Manual
                     logger.info("Autofocus disabled (AfMode: 0/Manual)")
@@ -180,8 +180,9 @@ class RPiCamera:
             return False
         try:
             with self._camera_lock:
+                self._camera.set_controls({"AfMode": 1})  # 1 = Auto (one-shot)
                 self._camera.set_controls({"AfTrigger": "Start"})
-                logger.info("One-shot autofocus triggered (AfTrigger: Start)")
+                logger.info("One-shot autofocus triggered (AfMode: 1, AfTrigger: Start)")
             return True
         except Exception as e:
             logger.error(f"Failed to trigger autofocus: {e}")
