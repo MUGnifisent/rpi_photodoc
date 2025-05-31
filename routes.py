@@ -183,11 +183,11 @@ def stop_camera_stream():
 
 def gen_camera_feed():
     """Video streaming generator function."""
-    # Capture the logger from current_app while the app context is available
-    logger = current_app.logger 
-    # It's also possible to capture the app itself if more app features are needed:
-    # app = current_app._get_current_object()
-    # logger = app.logger
+    # Capture the actual app object when the generator is initialized.
+    # This ensures we have a reference to the app and its logger
+    # that persists even if the original request context is gone.
+    app = current_app._get_current_object()
+    logger = app.logger
 
     logger.info("gen_camera_feed called.")
     if not rpi_camera_instance.is_available():
