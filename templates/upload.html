@@ -31,43 +31,47 @@
     }
     .camera-feed-container {
         position: relative;
-        display: flex;
+        display: none; /* Initially hidden, shown by JS */
         justify-content: center;
         align-items: center;
-        background: #222;
-        border-radius: 10px;
+        background: #232323; /* Dark background for the container */
+        border-radius: 12px; /* Slightly less than card, more than image */
         border: 1.5px solid #333;
         box-shadow: 0 2px 12px 0 rgba(0,0,0,0.10);
         margin: 0 auto 1.5em auto;
-        padding: 0.5em;
-        width: auto;
-        min-width: 0;
-        min-height: 0;
-        max-width: 100%;
-        max-height: 70vh;
+        padding: 0; /* Removed padding to make it wrap tightly */
+        width: auto; /* Will be set by JS */
+        height: auto; /* Will be set by JS */
+        min-width: 200px; /* Minimum sensible size */
+        min-height: 150px; /* Minimum sensible size */
+        max-width: 100%; /* Constrained by parent */
+        max-height: 70vh; /* Overall vertical constraint */
+        overflow: hidden; /* Ensures rotated image doesn't break layout */
     }
     .camera-feed-container.visible {
         display: flex;
     }
     .camera-feed {
-        display: none;
-        max-width: 100%;
-        max-height: 60vh;
-        width: auto;
-        height: auto;
-        border-radius: 8px;
+        display: none; /* Initially hidden */
+        width: 100%;   /* Make image take full width of container */
+        height: 100%;  /* Make image take full height of container */
+        max-width: 100%; /* Redundant if width is 100% but good for clarity */
+        max-height: 100%; /* Redundant if height is 100% but good for clarity */
+        border-radius: 10px; /* Match container's inner feel if any bg shows */
         object-fit: contain;
-        background: #181818;
-        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
-        transition: transform 0.3s;
+        background: #181818; /* Background for the image area itself if transparent parts */
+        /* box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10); /* Shadow on image might be too much if container has it */
+        transition: transform 0.3s ease-in-out;
     }
     .camera-feed.visible {
         display: block;
     }
     .camera-feed.portrait {
         transform: rotate(90deg);
-        max-width: 60vh;
-        max-height: 100vw;
+        /* Width/height for portrait are effectively swapped due to rotation */
+        /* The JS will handle container size, image itself uses 100% of that rotated space */
+        /* Ensure transform-origin is center for a good rotation effect */
+        transform-origin: center center;
     }
     .camera-loading-overlay {
         position: absolute;
@@ -533,7 +537,7 @@
             <h2 class="title is-4 has-text-centered">RPi Camera</h2>
             <p class="subtitle is-6 has-text-centered has-text-grey-light mb-4" id="camera-status-text">Checking camera status...</p>
             <div class="has-text-centered mb-3 autofocus-controls">
-                <button class="button is-small is-rounded" id="toggle-portrait-btn" type="button">
+                <button class="button is-small is-rounded" id="toggle-portrait-btn" type="button" disabled>
                     <span class="icon"><i class="fas fa-mobile-alt"></i></span>
                     <span id="portrait-btn-label">Portrait Mode: Off</span>
                 </button>
@@ -541,7 +545,7 @@
                     <span class="icon"><i class="fas fa-bullseye"></i></span>
                     <span id="af-btn-label">Autofocus: ...</span>
                 </button>
-                <button class="button is-small is-rounded" id="oneshot-af-btn" type="button">
+                <button class="button is-small is-rounded" id="oneshot-af-btn" type="button" disabled>
                     <span class="icon"><i class="fas fa-crosshairs"></i></span>
                     <span>One-Shot AF</span>
                 </button>
@@ -655,13 +659,66 @@ document.addEventListener('DOMContentLoaded', () => {
         let streamActive = false;
 
         function updatePortraitButton() {
+            const img = cameraFeedImg;
+            const container = cameraFeedContainer;
+            
             if (portraitMode) {
                 portraitBtnLabel.textContent = 'Portrait Mode: On';
-                cameraFeedImg.classList.add('portrait');
+                img.classList.add('portrait');
             } else {
                 portraitBtnLabel.textContent = 'Portrait Mode: Off';
-                cameraFeedImg.classList.remove('portrait');
+                img.classList.remove('portrait');
             }
+
+            // Adjust container to fit image after rotation/derotation
+            // Need to do this after the class is applied and browser has a chance to reflow
+            setTimeout(() => {
+                if (img.offsetParent === null) return; // Image not visible, do nothing
+
+                let newWidth = img.offsetWidth;
+                let newHeight = img.offsetHeight;
+
+                // If image is in portrait mode, its logical width/height are swapped for container
+                if (portraitMode) {
+                    newWidth = img.offsetHeight; // conceptual width of container
+                    newHeight = img.offsetWidth;  // conceptual height of container
+                } else {
+                    newWidth = img.offsetWidth;
+                    newHeight = img.offsetHeight;
+                }
+                
+                // Respect CSS max-width/max-height of container (e.g. 100% width, 70vh height)
+                const containerMaxWidth = container.parentElement.clientWidth; // approx
+                const containerMaxHeight = window.innerHeight * 0.7;
+
+                let finalWidth = Math.min(newWidth, containerMaxWidth);
+                let finalHeight = Math.min(newHeight, containerMaxHeight);
+
+                // Maintain aspect ratio based on the image's intrinsic ratio after object-fit:contain
+                // The offsetWidth/Height of the img tag *after* object-fit:contain gives the visual size
+                const visualImgWidth = img.offsetWidth;
+                const visualImgHeight = img.offsetHeight;
+
+                if (visualImgWidth > 0 && visualImgHeight > 0) {
+                    const aspectRatio = visualImgWidth / visualImgHeight;
+                    
+                    // Adjust based on limiting dimension
+                    if (finalWidth / aspectRatio > finalHeight) { // Width is limiting
+                        finalWidth = finalHeight * aspectRatio;
+                    } else { // Height is limiting
+                        finalHeight = finalWidth / aspectRatio;
+                    }
+                }
+
+                container.style.width = `${Math.round(finalWidth)}px`;
+                container.style.height = `${Math.round(finalHeight)}px`;
+                
+                // Also ensure the image itself uses the new container dimensions for its max-width/height
+                // if it was previously constrained by the container's old size
+                img.style.maxWidth = `${Math.round(finalWidth)}px`;
+                img.style.maxHeight = `${Math.round(finalHeight)}px`;
+
+            }, 50); // Short delay for reflow
         }
         togglePortraitBtn.addEventListener('click', async () => {
             portraitMode = !portraitMode;
@@ -702,85 +759,84 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         async function checkCameraStatus() {
-            // cameraStatusText.textContent = "Checking camera status...";
             showCameraLoading("Checking camera status...");
             startCameraButton.disabled = true;
-            capturePhotoButton.disabled = true; // Disable until status known
+            // Disable all controls initially
+            capturePhotoButton.disabled = true;
+            togglePortraitBtn.disabled = true;
+            toggleAfBtn.disabled = true;
+            oneshotAfBtn.disabled = true;
+
             try {
                 const response = await fetch("{{ url_for('main.camera_status') }}");
                 const data = await response.json();
                 if (data.available) {
-                    startCameraButton.disabled = false; // Enable if available
+                    startCameraButton.disabled = false; 
                     if (data.streaming) {
                         activateStreamUI();
-                        cameraStatusText.textContent = "Camera live."; // Update text here
+                        cameraStatusText.textContent = "Camera live."; 
                     } else {
-                        // Camera is available but not streaming
-                        showCameraPlaceholder();
-                        startCameraButton.style.display = 'block';
-                        stopCameraButton.style.display = 'none';
-                        capturePhotoButton.style.display = 'none'; // Hide capture button if not streaming
-                        capturePhotoButton.disabled = true;
-                        cameraStatusText.textContent = "Camera ready. Press Start.";
-                        streamActive = false;
+                        deactivateStreamUI("Camera ready. Press Start.", false); // Keep start enabled
                     }
                 } else {
                     cameraStatusText.textContent = data.message || "RPi Camera not available.";
-                    showCameraPlaceholder(); // Show placeholder if not available
-                    startCameraButton.style.display = 'block';
-                    startCameraButton.disabled = true;
-                    stopCameraButton.style.display = 'none';
-                    capturePhotoButton.style.display = 'none';
-                    capturePhotoButton.disabled = true;
-                    streamActive = false;
+                    deactivateStreamUI(data.message || "RPi Camera not available.", true); // All buttons remain disabled
                 }
             } catch (error) {
                 console.error("Error checking camera status:", error);
-                cameraStatusText.textContent = "Error checking camera status.";
-                showCameraPlaceholder(); // Show placeholder on error
-                startCameraButton.style.display = 'block';
-                startCameraButton.disabled = true;
-                stopCameraButton.style.display = 'none';
-                capturePhotoButton.style.display = 'none';
-                capturePhotoButton.disabled = true;
-                streamActive = false;
+                const errorMsg = "Error checking camera status.";
+                deactivateStreamUI(errorMsg, true); // All buttons remain disabled
             }
         }
 
         function activateStreamUI() {
-            // cameraFeedImg.src = "{{ url_for('main.camera_feed') }}?_nocache=" + new Date().getTime();
             showLiveFeed();
             startCameraButton.style.display = 'none';
             stopCameraButton.style.display = 'block';
             stopCameraButton.disabled = false;
+            
             capturePhotoButton.style.display = 'block';
             capturePhotoButton.disabled = false;
-            cameraStatusText.textContent = "Camera live."; // Ensure text is set here too
+            togglePortraitBtn.disabled = false;
+            // toggleAfBtn is enabled by its own updateAfStateUI logic
+            oneshotAfBtn.disabled = false;
+            
+            cameraStatusText.textContent = "Camera live.";
             streamActive = true;
+            updateAfStateUI(); // Ensure AF button state is correct
         }
 
-        function deactivateStreamUI(statusText = "Camera stopped.") {
+        function deactivateStreamUI(statusText = "Camera stopped.", disableAll = true) {
             showCameraPlaceholder();
             startCameraButton.style.display = 'block';
-            // If camera was available, start button should be enabled by checkCameraStatus or its direct handling path.
-            // We only disable it if camera becomes unavailable.
-            // startCameraButton.disabled = !rpi_camera_instance.is_available(); // This logic is now in checkCameraStatus
+            startCameraButton.disabled = disableAll; // Only disable start if camera truly unavailable
 
             stopCameraButton.style.display = 'none';
             capturePhotoButton.style.display = 'none';
-            capturePhotoButton.disabled = true; 
+            
+            // Disable all camera controls
+            capturePhotoButton.disabled = true;
+            togglePortraitBtn.disabled = true;
+            toggleAfBtn.disabled = true; // Will be re-evaluated by updateAfStateUI if needed
+            oneshotAfBtn.disabled = true;
+            
             cameraStatusText.textContent = statusText;
             streamActive = false;
-            // DO NOT call checkCameraStatus() here to prevent recursion.
-            // The states of buttons should be managed by the function that led to deactivation or a fresh checkCameraStatus call.
+            if (disableAll) { // If camera system is off/error, ensure AF button reflects this
+                updateAfStateUI(); // This will set AF button to N/A and disabled
+            }
         }
 
         startCameraButton.addEventListener('click', async () => {
             startCameraButton.classList.add('is-loading');
             startCameraButton.disabled = true;
-            // cameraStatusText.textContent = "Starting camera...";
+            // Ensure all other controls are disabled during start attempt
+            capturePhotoButton.disabled = true;
+            togglePortraitBtn.disabled = true;
+            toggleAfBtn.disabled = true;
+            oneshotAfBtn.disabled = true;
+
             showCameraLoading("Starting camera...");
-            capturePhotoButton.disabled = true; // Disable capture while starting
             try {
                 const response = await fetch("{{ url_for('main.start_camera_stream') }}", { method: 'POST' });
                 const result = await response.json();
@@ -798,36 +854,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayNotification(errorMsg, 'danger', captureMessagePlaceholder);
             }
             startCameraButton.classList.remove('is-loading');
-            // Button state will be set by checkCameraStatus called in deactivateStreamUI or by direct activation
+            // If successful, activateStreamUI enables buttons. 
+            // If failed, checkCameraStatus or direct call to deactivateStreamUI handles button states.
+            if (!streamActive && !startCameraButton.disabled) { // If failed and start button is not disabled by higher logic
+                 startCameraButton.disabled = false; // Re-enable start if it failed but camera still available
+            }
         });
 
         stopCameraButton.addEventListener('click', async () => {
             stopCameraButton.classList.add('is-loading');
             stopCameraButton.disabled = true;
-            capturePhotoButton.disabled = true; // Disable capture while stopping
-            // cameraStatusText.textContent = "Stopping camera..."; // Replaced by showCameraLoading
+            // Disable all controls when stopping
+            capturePhotoButton.disabled = true;
+            togglePortraitBtn.disabled = true;
+            toggleAfBtn.disabled = true;
+            oneshotAfBtn.disabled = true;
+
             showCameraLoading("Stopping camera...");
             try {
                 const response = await fetch("{{ url_for('main.stop_camera_stream') }}", { method: 'POST' });
                 const result = await response.json();
                 if (response.ok && result.success) {
-                    // When stopping, we go to a state where camera is ready but not streaming.
-                    // So, directly set that state rather than calling deactivateStreamUI which might call checkCameraStatus.
-                    showCameraPlaceholder();
-                    startCameraButton.style.display = 'block';
-                    startCameraButton.disabled = false; // Camera is still available
-                    stopCameraButton.style.display = 'none';
-                    capturePhotoButton.style.display = 'none';
-                    capturePhotoButton.disabled = true;
-                    cameraStatusText.textContent = "Camera stopped. Press Start to resume.";
-                    streamActive = false;
+                    deactivateStreamUI("Camera stopped. Press Start to resume.", false); // Keep start enabled
                 } else {
                     const errorMsg = "Failed to stop camera: " + (result.error || "Unknown error");
                     cameraStatusText.textContent = errorMsg;
                     displayNotification(errorMsg, 'danger', captureMessagePlaceholder);
                     stopCameraButton.disabled = false; 
-                    if(streamActive) capturePhotoButton.disabled = false; // Re-enable if stream was active
-                    else showCameraPlaceholder(); // Ensure placeholder if error and not streaming
+                    if(streamActive) { // Re-enable controls if stop failed AND stream was/is active
+                        activateStreamUI(); // This will re-enable appropriate buttons
+                    } else { // Stream not active, ensure they stay disabled
+                        deactivateStreamUI(errorMsg, true);
+                    }
                 }
             } catch (error) {
                 console.error("Error stopping camera:", error);
@@ -835,17 +893,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 cameraStatusText.textContent = errorMsg;
                 displayNotification(errorMsg, 'danger', captureMessagePlaceholder);
                 stopCameraButton.disabled = false; 
-                if(streamActive) capturePhotoButton.disabled = false;
-                else showCameraPlaceholder();
+                if(streamActive) {
+                    activateStreamUI();
+                } else {
+                    deactivateStreamUI(errorMsg, true);
+                }
             }
             stopCameraButton.classList.remove('is-loading');
         });
 
         capturePhotoButton.addEventListener('click', async () => {
             capturePhotoButton.classList.add('is-loading');
+            // Disable all other camera interaction buttons during capture
             capturePhotoButton.disabled = true;
-            startCameraButton.disabled = true; // Prevent starting during capture
-            stopCameraButton.disabled = true; // Prevent stopping during capture
+            startCameraButton.disabled = true; 
+            stopCameraButton.disabled = true; 
+            togglePortraitBtn.disabled = true;
+            toggleAfBtn.disabled = true;
+            oneshotAfBtn.disabled = true;
             
             // Clear previous messages
             if (captureMessagePlaceholder) captureMessagePlaceholder.innerHTML = '';
@@ -882,48 +947,79 @@ document.addEventListener('DOMContentLoaded', () => {
                  capturePhotoButton.classList.remove('is-loading');
             }
             // Re-evaluate camera state for other buttons if not redirecting
-            if (!capturePhotoButton.disabled) {
+            if (!result.redirect_url) { // If not redirecting, re-check status to update buttons
                  checkCameraStatus(); 
             }
         });
 
         async function updateAfStateUI() {
+            // This function is the single source of truth for AF button appearance.
+            // It fetches the current state from the backend.
+            if (!toggleAfBtn) return; // Guard if called when button not present
+
+            const originalBtnText = afBtnLabel.textContent;
+            const wasEnabled = toggleAfBtn.classList.contains('autofocus-on');
+            // Temporarily show a fetching state if not already loading
+            if (!toggleAfBtn.classList.contains('is-loading')) {
+                 afBtnLabel.textContent = 'AF: ...';
+            }
+
             try {
                 const resp = await fetch("{{ url_for('main.camera_autofocus_state') }}");
                 const data = await resp.json();
-                console.log("updateAfStateUI data:", data);
+                console.log("updateAfStateUI received data:", data);
+
                 if (data.available) {
-                    afEnabled = (data.af_mode === 2); // AfMode 2 is Continuous
-                    afBtnLabel.textContent = afEnabled ? 'Autofocus: On' : 'Autofocus: Off';
-                    toggleAfBtn.classList.toggle('autofocus-on', afEnabled);
-                    toggleAfBtn.classList.toggle('autofocus-off', !afEnabled);
-                    afStatus.textContent = ''; // AF State (e.g., IDLE, SCANNING) could be shown here if desired
-                    toggleAfBtn.disabled = false; // Enable button only if AF system is available
+                    // AfMode: 0=manual, 1=auto (single), 2=continuous
+                    const isCurrentlyContinuous = (data.af_mode === 2);
+                    afEnabled = isCurrentlyContinuous; // Update global afEnabled state
+                    
+                    afBtnLabel.textContent = isCurrentlyContinuous ? 'Autofocus: On' : 'Autofocus: Off';
+                    toggleAfBtn.classList.toggle('autofocus-on', isCurrentlyContinuous);
+                    toggleAfBtn.classList.toggle('autofocus-off', !isCurrentlyContinuous);
+                    // Potentially display AfState too, e.g., data.af_state (0:Inactive, 1:Scanning, 2:Focused, 3:Failed)
+                    // afStatus.textContent = `(State: ${data.af_state_str || data.af_state})`; 
+                    afStatus.textContent = '';
+                    toggleAfBtn.disabled = false;
                 } else {
                     afEnabled = false;
                     afBtnLabel.textContent = 'Autofocus: N/A';
                     toggleAfBtn.classList.remove('autofocus-on');
                     toggleAfBtn.classList.add('autofocus-off');
                     afStatus.textContent = '';
-                    toggleAfBtn.disabled = true; // Disable if AF system not available
+                    toggleAfBtn.disabled = true;
                 }
             } catch (e) {
                 console.error("Error in updateAfStateUI:", e);
-                afEnabled = false;
+                afEnabled = false; // Assume off on error
                 afBtnLabel.textContent = 'Autofocus: Err';
                 toggleAfBtn.classList.remove('autofocus-on');
                 toggleAfBtn.classList.add('autofocus-off');
                 afStatus.textContent = '';
-                toggleAfBtn.disabled = true; // Disable on error
+                toggleAfBtn.disabled = true; // Disable on error, but re-enable after timeout if it was just a fetch blip
+            } finally {
+                // If button was not externally set to loading, revert its text if unchanged
+                if (!toggleAfBtn.classList.contains('is-loading') && afBtnLabel.textContent === 'AF: ...' && wasEnabled !== afEnabled) {
+                    // If state changed, it's already updated. If not, it means it was N/A or Err or same state.
+                    // No, the final state is now set above. This finally block might not be needed or simplified.
+                }
             }
         }
+
         toggleAfBtn.addEventListener('click', async () => {
-            // Current state (before toggle) is in afEnabled
-            const targetEnabledState = !afEnabled;
-            afBtnLabel.textContent = '...';
+            if (!streamActive) {
+                displayNotification("Camera stream not active. Cannot toggle autofocus.", "warning", captureMessagePlaceholder);
+                return;
+            }
+            
+            const targetEnabledState = !afEnabled; // Determine desired state based on current actual state
+            
+            // UI update for loading state
+            afBtnLabel.textContent = 'AF: ...';
             toggleAfBtn.disabled = true;
             toggleAfBtn.classList.add('is-loading');
-            console.log(`Attempting to set AF to: ${targetEnabledState}`);
+            console.log(`Requesting AF to be: ${targetEnabledState}`);
+
             try {
                 const response = await fetch("{{ url_for('main.camera_set_autofocus') }}", {
                     method: 'POST',
@@ -932,42 +1028,54 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const result = await response.json();
                 console.log('Response from /camera_set_autofocus:', result);
+
                 if (!response.ok || !result.success) {
                     console.error('Failed to set autofocus via backend:', result.error || 'Unknown error');
                     displayNotification(`Failed to set autofocus: ${result.error || 'Server error'}`, 'danger', captureMessagePlaceholder);
-                    // Revert UI to previous state on failure
-                    afBtnLabel.textContent = afEnabled ? 'Autofocus: On' : 'Autofocus: Off'; 
                 }
-                // Always refresh UI from server's reported state after attempting change
-                // Give a slightly longer delay to ensure camera hardware and backend state are settled
-                setTimeout(() => {
-                    updateAfStateUI(); // This will fetch the true current state
-                    toggleAfBtn.disabled = false;
-                    toggleAfBtn.classList.remove('is-loading');
-                }, 700); // Increased delay before UI refresh
+                // Backend call finished. Backend *should* have changed the state (or tried to).
+                // Now, ALWAYS fetch the definitive state from the camera.
             } catch (e) {
-                console.error('Error in toggleAfBtn click handler:', e);
-                afBtnLabel.textContent = afEnabled ? 'Autofocus: On' : 'Autofocus: Off';
-                // Re-enable button even on error, then refresh UI
+                console.error('Error in toggleAfBtn click POSTing to /camera_set_autofocus:', e);
+                displayNotification('Error sending autofocus command.', 'danger', captureMessagePlaceholder);
+            } finally {
+                // Regardless of success or failure of the POST, refresh the UI from the camera's actual state.
+                // Add a delay to allow the camera hardware to potentially catch up to the command.
                 setTimeout(() => {
-                    updateAfStateUI();
-                    toggleAfBtn.disabled = false;
+                    updateAfStateUI(); // This fetches true state and updates button text/classes/disabled status
+                    // toggleAfBtn.disabled = false; // updateAfStateUI will handle disabling/enabling
                     toggleAfBtn.classList.remove('is-loading');
-                }, 700);
+                }, 800); // Slightly longer delay for camera hardware to report new state
             }
         });
+
         oneshotAfBtn.addEventListener('click', async () => {
+            if (!streamActive) {
+                displayNotification("Camera stream not active. Cannot trigger one-shot AF.", "warning", captureMessagePlaceholder);
+                return;
+            }
             oneshotAfBtn.classList.add('is-loading');
+            oneshotAfBtn.disabled = true; // Disable during operation
+            toggleAfBtn.disabled = true; // Also disable continuous AF toggle during one-shot
+
             await fetch("{{ url_for('main.camera_trigger_autofocus') }}", { method: 'POST' });
+            
+            // After triggering, the AfMode might change (e.g. to Auto, then back to previous, or stay in Auto)
+            // Give it time to complete the one-shot operation and then update the UI.
             setTimeout(() => {
                 oneshotAfBtn.classList.remove('is-loading');
-                updateAfStateUI();
-            }, 600);
+                oneshotAfBtn.disabled = false; 
+                // toggleAfBtn.disabled = false; // updateAfStateUI will handle this one
+                updateAfStateUI(); // Refresh AF state as it might have changed
+            }, 1200); // Longer delay for one-shot AF to complete and state to settle
         });
 
-        // Initial check
-        checkCameraStatus();
-        updateAfStateUI();
+        // Initial state setup
+        // Call checkCameraStatus first, which then calls activate/deactivateStreamUI.
+        // activateStreamUI will call updateAfStateUI.
+        // If stream is not active initially, updateAfStateUI is called by deactivateStreamUI path in checkCameraStatus.
+        checkCameraStatus(); 
+        // updateAfStateUI(); // This call is likely redundant due to checkCameraStatus calling paths that include it.
     } // End of camera_available block
 
     // Generic handler for dismissing server-side flash messages (if any remain)
