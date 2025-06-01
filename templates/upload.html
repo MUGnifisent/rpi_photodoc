@@ -750,12 +750,35 @@ document.addEventListener('DOMContentLoaded', () => {
             cameraLoadingOverlay.style.display = 'none';
         }
         function showLiveFeed() {
-            cameraFeedContainer.classList.add('visible');
-            cameraFeedImg.src = "{{ url_for('main.camera_feed') }}?_nocache=" + new Date().getTime();
-            cameraFeedImg.classList.add('visible');
-            cameraLoadingOverlay.style.display = 'none';
-            updatePortraitButton();
-            updateAfStateUI();
+            if (!cameraFeedImg || !cameraFeedContainer || !cameraLoadingOverlay) return;
+
+            // Set a placeholder/loading appearance before src is set
+            cameraFeedContainer.classList.add('visible'); // Show container
+            cameraFeedImg.classList.remove('visible');   // Hide image until loaded
+            cameraLoadingOverlay.style.display = 'flex'; // Show loading overlay
+            cameraFeedImg.src = ''; // Clear previous src to ensure onload triggers for new one
+
+            // Set the new source
+            const feedUrl = "{{ url_for('main.camera_feed') }}?_nocache=" + new Date().getTime();
+            cameraFeedImg.src = feedUrl;
+
+            // Define what happens when the image successfully loads
+            cameraFeedImg.onload = () => {
+                console.log("camera_feed_img loaded. Dimensions:", cameraFeedImg.offsetWidth, cameraFeedImg.offsetHeight);
+                cameraFeedImg.classList.add('visible');    // Show image
+                cameraLoadingOverlay.style.display = 'none'; // Hide loading overlay
+                updatePortraitButton(); // This will adjust container size based on loaded image
+                // updateAfStateUI(); // AF state should be independent of image load, called by activateStreamUI
+            };
+
+            // Define what happens if the image fails to load
+            cameraFeedImg.onerror = () => {
+                console.error("Failed to load camera feed from URL:", feedUrl);
+                cameraLoadingOverlay.textContent = 'Error loading feed.';
+                cameraFeedImg.classList.remove('visible');
+                // Optionally, call deactivateStreamUI or similar to handle feed error
+                // For now, just shows error in overlay.
+            };
         }
 
         async function checkCameraStatus() {
