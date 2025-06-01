@@ -245,8 +245,9 @@ a:hover {
     color: #ff8c1a;
 }
 
-.button-app-main {
-    background: #ff8800;
+/* Unified button style for all major actions */
+.button-main {
+    background: #ff6600;
     color: #fff;
     border: none;
     border-radius: 12px;
@@ -267,8 +268,10 @@ a:hover {
     margin-bottom: 1em;
     letter-spacing: 0.01em;
 }
-.button-app-main:hover, .button-app-main:focus {
-    background: #ff6a00;
+.button-main:hover, .button-main:focus {
+    background: #e65c00;
     color: #fff;
     box-shadow: 0 2px 12px 0 rgba(255,136,0,0.18);
-} 
+}
+
+/* Remove/override any previous .button-main or .button.upload-flat definitions in page-level styles */ 

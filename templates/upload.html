@@ -509,7 +509,7 @@
             <form method="POST" action="{{ url_for('main.process_upload') }}" enctype="multipart/form-data" id="upload-form">
                 <div class="field">
                     <label class="upload-box-label" for="file-upload-input">Image File</label>
-                    <label class="custom-file-upload button button-app-main" tabindex="0">
+                    <label class="custom-file-upload button-main" tabindex="0">
                         <span class="file-icon"><i class="fas fa-upload"></i></span>
                         <span class="file-label">Choose a file...</span>
                         <input class="file-input" type="file" name="file" accept="image/png, image/jpeg, image/webp" id="file-upload-input">
@@ -519,7 +519,7 @@
                 <div id="upload-form-error-placeholder" class="mt-2"></div>
                 <div class="field mt-5">
                     <div class="control has-text-centered">
-                        <button type="submit" class="button button-app-main" id="upload-submit-button">
+                        <button type="submit" class="button-main" id="upload-submit-button">
                             <span class="icon"><i class="fas fa-cogs"></i></span>
                             <span>Upload and Process</span>
                         </button>
@@ -551,15 +551,15 @@
                  <img src="" alt="Camera Feed" id="camera-feed-img" class="camera-feed"/>
                  <div class="camera-loading-overlay" id="camera-loading-overlay" style="display: none;">Loading camera...</div>
             </div>
-            <button class="button is-link is-fullwidth mb-2 mt-4" id="start-camera-btn" disabled>
+            <button class="button-main mb-2 mt-4" id="start-camera-btn" disabled>
                 <span class="icon"><i class="fas fa-video"></i></span>
                 <span>Start Camera</span>
             </button>
-            <button class="button is-danger is-fullwidth mb-2 mt-4" id="stop-camera-btn" style="display:none;">
+            <button class="button-main mb-2 mt-4" id="stop-camera-btn" style="display:none;">
                 <span class="icon"><i class="fas fa-video-slash"></i></span>
                 <span>Stop Camera</span>
             </button>
-            <button class="button is-primary is-fullwidth" id="capture-photo-btn" style="display:none;" disabled>
+            <button class="button-main" id="capture-photo-btn" style="display:none;" disabled>
                 <span class="icon"><i class="fas fa-camera"></i></span>
                 <span>Capture Photo & Process</span>
             </button>
