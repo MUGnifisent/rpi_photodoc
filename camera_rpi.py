@@ -164,11 +164,13 @@ class RPiCamera:
         try:
             with self._camera_lock:
                 if enabled:
-                    # Set both AfMode and AfTrigger to start continuous AF
-                    self._camera.set_controls({"AfMode": 2, "AfTrigger": 0})  # 2 = Continuous, 0 = Start
-                    logger.info("Autofocus enabled (AfMode: 2/Continuous, AfTrigger: 0/Start)")
+                    # Reset to manual first, then enable continuous AF
+                    self._camera.set_controls({"AfMode": 0})
+                    time.sleep(0.1)  # Give hardware a moment to reset
+                    self._camera.set_controls({"AfMode": 2, "AfTrigger": 0})
+                    logger.info("Autofocus enabled (reset to manual, then AfMode: 2/Continuous, AfTrigger: 0/Start)")
                 else:
-                    self._camera.set_controls({"AfMode": 0})  # 0 = Manual (int)
+                    self._camera.set_controls({"AfMode": 0})
                     logger.info("Autofocus disabled (AfMode: 0/Manual)")
             return True
         except Exception as e:
