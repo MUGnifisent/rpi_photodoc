@@ -160,22 +160,37 @@ class RPiCamera:
     def set_autofocus(self, enabled: bool):
         if not self.is_available():
             logger.warning("set_autofocus called but camera not available.")
-            return False
+            return False, None
         try:
             with self._camera_lock:
+                was_streaming = self._is_streaming
                 if enabled:
                     # Reset to manual first, then enable continuous AF
                     self._camera.set_controls({"AfMode": 0})
-                    time.sleep(0.1)  # Give hardware a moment to reset
+                    time.sleep(0.1)
                     self._camera.set_controls({"AfMode": 2, "AfTrigger": 0})
                     logger.info("Autofocus enabled (reset to manual, then AfMode: 2/Continuous, AfTrigger: 0/Start)")
                 else:
                     self._camera.set_controls({"AfMode": 0})
                     logger.info("Autofocus disabled (AfMode: 0/Manual)")
-            return True
+                # Restart stream if it was running
+                if was_streaming:
+                    logger.info("Restarting stream to apply AF mode change.")
+                    self.stop_streaming()
+                    time.sleep(0.2)
+                    self.start_streaming()
+                # Wait a moment for camera to update state
+                time.sleep(0.2)
+                # Read and log AF state
+                meta = self._camera.capture_metadata()
+                af_mode = meta.get('AfMode', None)
+                af_state = meta.get('AfState', None)
+                af_position = meta.get('LensPosition', None)
+                logger.info(f"After set_autofocus: AfMode={af_mode}, AfState={af_state}, LensPosition={af_position}")
+                return True, {"af_mode": af_mode, "af_state": af_state, "af_position": af_position}
         except Exception as e:
             logger.error(f"Failed to set autofocus: {e}")
-            return False
+            return False, None
 
     def trigger_autofocus(self):
         if not self.is_available():
