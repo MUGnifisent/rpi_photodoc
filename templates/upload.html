@@ -911,12 +911,24 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleAfBtn.addEventListener('click', async () => {
             afEnabled = !afEnabled;
             afBtnLabel.textContent = '...';
-            await fetch("{{ url_for('main.camera_set_autofocus') }}", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: afEnabled })
-            });
-            setTimeout(updateAfStateUI, 400); // Give camera time to update
+            toggleAfBtn.disabled = true;
+            toggleAfBtn.classList.add('is-loading');
+            try {
+                await fetch("{{ url_for('main.camera_set_autofocus') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: afEnabled })
+                });
+                setTimeout(() => {
+                    updateAfStateUI();
+                    toggleAfBtn.disabled = false;
+                    toggleAfBtn.classList.remove('is-loading');
+                }, 400); // Give camera time to update
+            } catch (e) {
+                afBtnLabel.textContent = 'Autofocus: Err';
+                toggleAfBtn.disabled = false;
+                toggleAfBtn.classList.remove('is-loading');
+            }
         });
         oneshotAfBtn.addEventListener('click', async () => {
             oneshotAfBtn.classList.add('is-loading');
