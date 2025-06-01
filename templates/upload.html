@@ -896,7 +896,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     afBtnLabel.textContent = afEnabled ? 'Autofocus: On' : 'Autofocus: Off';
                     toggleAfBtn.classList.toggle('autofocus-on', afEnabled);
                     toggleAfBtn.classList.toggle('autofocus-off', !afEnabled);
-                    afStatus.textContent = data.af_state ? `State: ${data.af_state}` : '';
+                    afStatus.textContent = '';
                 } else {
                     afBtnLabel.textContent = 'Autofocus: N/A';
                     toggleAfBtn.classList.remove('autofocus-on', 'autofocus-off');
