@@ -253,25 +253,25 @@ def capture_rpi_photo():
         logger.info(f"Image captured successfully to {filepath}")
 
         # Start OCR and LLM processing (similar to process_upload)
-    original_ocr_text = None
+        original_ocr_text = None
         ai_cleaned_text = "Error during processing or no text found."
 
-    try:
+        try:
             logger.info(f"Performing OCR on {filepath}")
-        original_ocr_text = perform_ocr(filepath)
+            original_ocr_text = perform_ocr(filepath)
             logger.info(f"OCR for {filepath}. Length: {len(original_ocr_text if original_ocr_text else [])}")
 
-        if original_ocr_text and original_ocr_text.strip():
+            if original_ocr_text and original_ocr_text.strip():
                 logger.info(f"Calling LLM for cleanup of {filepath}")
-            ai_cleaned_text_result = call_llm("cleanup_ocr", original_ocr_text)
-            if ai_cleaned_text_result.startswith("Error:"):
+                ai_cleaned_text_result = call_llm("cleanup_ocr", original_ocr_text)
+                if ai_cleaned_text_result.startswith("Error:"):
                     logger.warning(f"LLM Error for {unique_filename}: {ai_cleaned_text_result}. Using raw OCR.")
-                ai_cleaned_text = original_ocr_text
-            else:
-                ai_cleaned_text = ai_cleaned_text_result
+                    ai_cleaned_text = original_ocr_text
+                else:
+                    ai_cleaned_text = ai_cleaned_text_result
                 logger.info(f"LLM for {filepath}. AI text length: {len(ai_cleaned_text if ai_cleaned_text else [])}")
             elif original_ocr_text is None:
-             ai_cleaned_text = "OCR process failed or returned no data."
+                ai_cleaned_text = "OCR process failed or returned no data."
                 logger.warning(f"OCR returned None for {filepath}.")
             else:
                 ai_cleaned_text = "No text found by OCR."
@@ -283,15 +283,13 @@ def capture_rpi_photo():
             # Flash message for OCR/LLM error, but still try to save photo
             flash(f'Error during text processing for {original_filename}: {str(e)}. Basic photo info saved.', 'warning')
 
-
         # Create Photo database record
         new_photo = create_photo(current_user.id, unique_filename, original_ocr_text, ai_cleaned_text)
         if not new_photo:
             logger.error(f"Failed to create photo record in database for {unique_filename}.")
-            # This is a more critical failure for the capture & process flow
             flash(f'Failed to save captured photo details for {original_filename} to database.', 'error')
             return jsonify({'success': False, 'error': 'Failed to save photo metadata to database.'}), 500
-        
+
         logger.info(f"Photo record created for {unique_filename} with ID {new_photo['id']}.")
 
         # Automatically create a document for this new photo
@@ -301,17 +299,15 @@ def capture_rpi_photo():
         if not new_doc:
             logger.error(f"Failed to create document for captured photo {new_photo['id']}.")
             flash(f'Photo "{original_filename}" was captured and processed, but failed to automatically create a document. Please create one manually from the gallery.', 'warning')
-            # Return success for photo processing but indicate document failure.
-            # Client-side JS should handle this by perhaps redirecting to gallery or showing the photo id.
             return jsonify({
                 'success': True, 
                 'photo_id': new_photo['id'],
                 'filename': unique_filename,
                 'warning': 'Photo processed, but failed to automatically create a document.',
                 'message': 'Photo captured and processed. Document creation failed. Redirecting to gallery.',
-                'redirect_url': url_for('main.gallery_view') # Redirect to gallery if doc fails
+                'redirect_url': url_for('main.gallery_view')
             }), 200 
-        
+
         logger.info(f"Document {new_doc['id']} created for photo {new_photo['id']}.")
         flash(f'Photo "{original_filename}" captured, processed, and document "{doc_name}" created successfully!', 'success')
         return jsonify({
