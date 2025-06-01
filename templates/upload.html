@@ -670,55 +670,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 img.classList.remove('portrait');
             }
 
-            // Adjust container to fit image after rotation/derotation
-            // Need to do this after the class is applied and browser has a chance to reflow
             setTimeout(() => {
-                if (img.offsetParent === null) return; // Image not visible, do nothing
-
-                let newWidth = img.offsetWidth;
-                let newHeight = img.offsetHeight;
-
-                // If image is in portrait mode, its logical width/height are swapped for container
-                if (portraitMode) {
-                    newWidth = img.offsetHeight; // conceptual width of container
-                    newHeight = img.offsetWidth;  // conceptual height of container
-                } else {
-                    newWidth = img.offsetWidth;
-                    newHeight = img.offsetHeight;
+                if (img.offsetParent === null || img.naturalWidth === 0 || img.naturalHeight === 0) {
+                    console.warn("updatePortraitButton: Image not visible or no natural dimensions, skipping resize.");
+                    // Optionally, reset container to default flexible state if image disappears
+                    // container.style.width = 'auto'; 
+                    // container.style.height = 'auto';
+                    return;
                 }
-                
-                // Respect CSS max-width/max-height of container (e.g. 100% width, 70vh height)
-                const containerMaxWidth = container.parentElement.clientWidth; // approx
-                const containerMaxHeight = window.innerHeight * 0.7;
 
-                let finalWidth = Math.min(newWidth, containerMaxWidth);
-                let finalHeight = Math.min(newHeight, containerMaxHeight);
-
-                // Maintain aspect ratio based on the image's intrinsic ratio after object-fit:contain
-                // The offsetWidth/Height of the img tag *after* object-fit:contain gives the visual size
+                // Get the visual dimensions of the <img> element itself after CSS rotation and object-fit
                 const visualImgWidth = img.offsetWidth;
                 const visualImgHeight = img.offsetHeight;
+                console.log(`updatePortraitButton: Portrait=${portraitMode}, Visual img dimensions: W=${visualImgWidth}, H=${visualImgHeight}`);
 
-                if (visualImgWidth > 0 && visualImgHeight > 0) {
-                    const aspectRatio = visualImgWidth / visualImgHeight;
-                    
-                    // Adjust based on limiting dimension
-                    if (finalWidth / aspectRatio > finalHeight) { // Width is limiting
-                        finalWidth = finalHeight * aspectRatio;
-                    } else { // Height is limiting
-                        finalHeight = finalWidth / aspectRatio;
+                // The container should snugly fit these visual dimensions.
+                let targetContainerWidth = visualImgWidth;
+                let targetContainerHeight = visualImgHeight;
+
+                // Apply container constraints (max-width: 100% of parent, max-height: 70vh)
+                const containerParentWidth = container.parentElement.clientWidth;
+                const viewportHeight = window.innerHeight;
+                const maxContainerHeight = viewportHeight * 0.70;
+
+                if (targetContainerWidth > containerParentWidth) {
+                    targetContainerWidth = containerParentWidth;
+                    // Recalculate height to maintain aspect ratio if width is clamped
+                    if (visualImgWidth > 0) { // Avoid division by zero
+                        targetContainerHeight = (visualImgHeight * targetContainerWidth) / visualImgWidth;
                     }
                 }
-
-                container.style.width = `${Math.round(finalWidth)}px`;
-                container.style.height = `${Math.round(finalHeight)}px`;
+                if (targetContainerHeight > maxContainerHeight) {
+                    targetContainerHeight = maxContainerHeight;
+                    // Recalculate width to maintain aspect ratio if height is clamped
+                    if (visualImgHeight > 0) { // Avoid division by zero
+                        targetContainerWidth = (visualImgWidth * targetContainerHeight) / visualImgHeight;
+                    }
+                }
                 
-                // Also ensure the image itself uses the new container dimensions for its max-width/height
-                // if it was previously constrained by the container's old size
-                img.style.maxWidth = `${Math.round(finalWidth)}px`;
-                img.style.maxHeight = `${Math.round(finalHeight)}px`;
+                // Final check: if one dimension was clamped, the other might need clamping again if aspect ratio changed things
+                 if (targetContainerWidth > containerParentWidth) targetContainerWidth = containerParentWidth;
+                 if (targetContainerHeight > maxContainerHeight) targetContainerHeight = maxContainerHeight;
 
-            }, 50); // Short delay for reflow
+
+                container.style.width = `${Math.round(targetContainerWidth)}px`;
+                container.style.height = `${Math.round(targetContainerHeight)}px`;
+                
+                console.log(`updatePortraitButton: Container set to W=${targetContainerWidth}, H=${targetContainerHeight}`);
+
+                // The img tag is already width/height 100% of container, object-fit handles the rest.
+                // No need to set img.style.maxWidth/Height here as it might conflict.
+            }, 100); // Delay for browser to apply CSS transform and for image to reflow
         }
         togglePortraitBtn.addEventListener('click', async () => {
             portraitMode = !portraitMode;
@@ -826,7 +828,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             cameraStatusText.textContent = "Camera live.";
             streamActive = true;
-            updateAfStateUI(); // Ensure AF button state is correct
+            setTimeout(updateAfStateUI, 500); // Call after a short delay post stream activation
         }
 
         function deactivateStreamUI(statusText = "Camera stopped.", disableAll = true) {
@@ -976,35 +978,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         async function updateAfStateUI() {
-            // This function is the single source of truth for AF button appearance.
-            // It fetches the current state from the backend.
-            if (!toggleAfBtn) return; // Guard if called when button not present
+            if (!toggleAfBtn) return;
+            console.log("updateAfStateUI: Called");
 
             const originalBtnText = afBtnLabel.textContent;
-            const wasEnabled = toggleAfBtn.classList.contains('autofocus-on');
-            // Temporarily show a fetching state if not already loading
             if (!toggleAfBtn.classList.contains('is-loading')) {
-                 afBtnLabel.textContent = 'AF: ...';
+                 afBtnLabel.textContent = 'AF: Fetching...'; // More descriptive temp state
             }
 
             try {
                 const resp = await fetch("{{ url_for('main.camera_autofocus_state') }}");
                 const data = await resp.json();
-                console.log("updateAfStateUI received data:", data);
+                console.log("updateAfStateUI: Received data from backend:", JSON.stringify(data));
 
                 if (data.available) {
-                    // AfMode: 0=manual, 1=auto (single), 2=continuous
                     const isCurrentlyContinuous = (data.af_mode === 2);
-                    afEnabled = isCurrentlyContinuous; // Update global afEnabled state
+                    console.log(`updateAfStateUI: data.af_mode is ${data.af_mode}, isCurrentlyContinuous is ${isCurrentlyContinuous}`);
+                    afEnabled = isCurrentlyContinuous; 
                     
                     afBtnLabel.textContent = isCurrentlyContinuous ? 'Autofocus: On' : 'Autofocus: Off';
                     toggleAfBtn.classList.toggle('autofocus-on', isCurrentlyContinuous);
                     toggleAfBtn.classList.toggle('autofocus-off', !isCurrentlyContinuous);
-                    // Potentially display AfState too, e.g., data.af_state (0:Inactive, 1:Scanning, 2:Focused, 3:Failed)
-                    // afStatus.textContent = `(State: ${data.af_state_str || data.af_state})`; 
-                    afStatus.textContent = '';
+                    afStatus.textContent = ''; 
                     toggleAfBtn.disabled = false;
+                    console.log("updateAfStateUI: Button state updated. afEnabled:", afEnabled, "Label:", afBtnLabel.textContent);
                 } else {
+                    console.log("updateAfStateUI: Autofocus system not available or error in data.");
                     afEnabled = false;
                     afBtnLabel.textContent = 'Autofocus: N/A';
                     toggleAfBtn.classList.remove('autofocus-on');
@@ -1013,19 +1012,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     toggleAfBtn.disabled = true;
                 }
             } catch (e) {
-                console.error("Error in updateAfStateUI:", e);
-                afEnabled = false; // Assume off on error
+                console.error("Error in updateAfStateUI fetch:", e);
+                afEnabled = false; 
                 afBtnLabel.textContent = 'Autofocus: Err';
                 toggleAfBtn.classList.remove('autofocus-on');
                 toggleAfBtn.classList.add('autofocus-off');
                 afStatus.textContent = '';
-                toggleAfBtn.disabled = true; // Disable on error, but re-enable after timeout if it was just a fetch blip
-            } finally {
-                // If button was not externally set to loading, revert its text if unchanged
-                if (!toggleAfBtn.classList.contains('is-loading') && afBtnLabel.textContent === 'AF: ...' && wasEnabled !== afEnabled) {
-                    // If state changed, it's already updated. If not, it means it was N/A or Err or same state.
-                    // No, the final state is now set above. This finally block might not be needed or simplified.
-                }
+                toggleAfBtn.disabled = true; 
             }
         }
 
@@ -1035,13 +1028,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            const targetEnabledState = !afEnabled; // Determine desired state based on current actual state
+            // Current actual state is in global afEnabled, which updateAfStateUI maintains
+            const targetEnabledState = !afEnabled; 
             
-            // UI update for loading state
-            afBtnLabel.textContent = 'AF: ...';
+            afBtnLabel.textContent = targetEnabledState ? 'AF: Enabling...' : 'AF: Disabling...';
             toggleAfBtn.disabled = true;
             toggleAfBtn.classList.add('is-loading');
-            console.log(`Requesting AF to be: ${targetEnabledState}`);
+            console.log(`toggleAfBtn: Requesting AF to be set to: ${targetEnabledState} (current afEnabled: ${afEnabled})`);
 
             try {
                 const response = await fetch("{{ url_for('main.camera_set_autofocus') }}", {
@@ -1050,25 +1043,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ enabled: targetEnabledState })
                 });
                 const result = await response.json();
-                console.log('Response from /camera_set_autofocus:', result);
+                console.log('toggleAfBtn: Response from /camera_set_autofocus:', result);
 
                 if (!response.ok || !result.success) {
-                    console.error('Failed to set autofocus via backend:', result.error || 'Unknown error');
+                    console.error('toggleAfBtn: Failed to set autofocus via backend:', result.error || 'Unknown error');
                     displayNotification(`Failed to set autofocus: ${result.error || 'Server error'}`, 'danger', captureMessagePlaceholder);
                 }
-                // Backend call finished. Backend *should* have changed the state (or tried to).
-                // Now, ALWAYS fetch the definitive state from the camera.
             } catch (e) {
-                console.error('Error in toggleAfBtn click POSTing to /camera_set_autofocus:', e);
+                console.error('toggleAfBtn: Error POSTing to /camera_set_autofocus:', e);
                 displayNotification('Error sending autofocus command.', 'danger', captureMessagePlaceholder);
             } finally {
-                // Regardless of success or failure of the POST, refresh the UI from the camera's actual state.
-                // Add a delay to allow the camera hardware to potentially catch up to the command.
+                console.log("toggleAfBtn: Backend call finished. Scheduling updateAfStateUI.");
                 setTimeout(() => {
-                    updateAfStateUI(); // This fetches true state and updates button text/classes/disabled status
-                    // toggleAfBtn.disabled = false; // updateAfStateUI will handle disabling/enabling
+                    console.log("toggleAfBtn: setTimeout executing updateAfStateUI.");
+                    updateAfStateUI(); 
                     toggleAfBtn.classList.remove('is-loading');
-                }, 800); // Slightly longer delay for camera hardware to report new state
+                    // toggleAfBtn.disabled is handled by updateAfStateUI
+                }, 1200); // Increased delay for camera hardware to report new state reliably
             }
         });
 
