@@ -81,14 +81,14 @@ class RPiCamera:
                     main={"size": (1920, 1080), "format": "RGB888"},
                     lores={"size": (1280, 720), "format": "YUV420"},
                     transform=transform,
-                    controls={"FrameRate": 30}
+                    controls={"FrameRate": 30, "AfMode": 0}  # Initialize AfMode to Manual
                 )
                 self._camera.configure(self.video_config)
                 encoder = JpegEncoder(q=70)
                 self._camera.start_encoder(encoder, FileOutput(self._streaming_output), name='lores')
                 self._camera.start()
                 self._is_streaming = True
-                logger.info(f"Camera streaming started on lores stream. Portrait mode: {self.portrait_mode}")
+                logger.info(f"Camera streaming started on lores stream. Portrait mode: {self.portrait_mode}. Initial AfMode: 0 (Manual).")
             return True
         except Exception as e:
             logger.error(f"Could not start camera streaming: {e}")
@@ -165,23 +165,26 @@ class RPiCamera:
             with self._camera_lock:
                 if enabled:
                     logger.info("Attempting to enable continuous autofocus...")
-                    # Reset to manual first
-                    self._camera.set_controls({"AfMode": 0})
-                    logger.info("Set AfMode: 0 (Manual) to reset.")
-                    time.sleep(0.2)  # Increased delay for hardware to settle
-                    metadata_after_manual = self._camera.capture_metadata()
-                    logger.info(f"Metadata after setting Manual: AfMode={metadata_after_manual.get('AfMode')}, AfState={metadata_after_manual.get('AfState')}")
+                    # 1. Set AfMode to Continuous
+                    self._camera.set_controls({"AfMode": 2})
+                    logger.info("Set AfMode: 2 (Continuous).")
+                    time.sleep(0.3)  # Increased delay for AfMode to apply
+                    metadata_after_afmode = self._camera.capture_metadata()
+                    logger.info(f"Metadata after setting AfMode=2: AfMode={metadata_after_afmode.get('AfMode')}, AfState={metadata_after_afmode.get('AfState')}")
 
-                    # Then enable continuous AF
-                    self._camera.set_controls({"AfMode": 2, "AfTrigger": 0}) # 2 = Continuous, 0 = Start
-                    logger.info("Set AfMode: 2 (Continuous), AfTrigger: 0 (Start).")
-                    time.sleep(0.2)  # Delay for controls to apply
-                    metadata_after_continuous = self._camera.capture_metadata()
-                    current_af_mode = metadata_after_continuous.get('AfMode')
-                    current_af_state = metadata_after_continuous.get('AfState')
-                    logger.info(f"Autofocus enabled: AfMode reported by camera: {current_af_mode}, AfState: {current_af_state}")
-                    if current_af_mode != 2:
-                        logger.warning(f"Failed to set AfMode to Continuous. Camera still reports AfMode: {current_af_mode}")
+                    if metadata_after_afmode.get('AfMode') == 2:
+                        # 2. If AfMode is Continuous, then set AfTrigger to Start
+                        self._camera.set_controls({"AfTrigger": 0})
+                        logger.info("Set AfTrigger: 0 (Start).")
+                        time.sleep(0.2) # Delay for AfTrigger to apply
+                        metadata_after_trigger = self._camera.capture_metadata()
+                        current_af_mode = metadata_after_trigger.get('AfMode')
+                        current_af_state = metadata_after_trigger.get('AfState')
+                        logger.info(f"Continuous Autofocus enabled: Final reported state - AfMode: {current_af_mode}, AfState: {current_af_state}")
+                        if current_af_mode != 2:
+                            logger.warning(f"AfMode changed from 2 after AfTrigger. Now: {current_af_mode}")
+                    else:
+                        logger.warning(f"Failed to set AfMode to Continuous (2). Camera reports: {metadata_after_afmode.get('AfMode')}. AfTrigger will not be sent.")
 
                 else:
                     logger.info("Attempting to disable autofocus (set to Manual)...")

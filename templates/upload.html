@@ -537,9 +537,9 @@
                     <span class="icon"><i class="fas fa-mobile-alt"></i></span>
                     <span id="portrait-btn-label">Portrait Mode: Off</span>
                 </button>
-                <button class="button is-small is-rounded" id="toggle-af-btn" type="button">
+                <button class="button is-small is-rounded autofocus-off" id="toggle-af-btn" type="button" disabled>
                     <span class="icon"><i class="fas fa-bullseye"></i></span>
-                    <span id="af-btn-label">Autofocus: Off</span>
+                    <span id="af-btn-label">Autofocus: ...</span>
                 </button>
                 <button class="button is-small is-rounded" id="oneshot-af-btn" type="button">
                     <span class="icon"><i class="fas fa-crosshairs"></i></span>
@@ -891,21 +891,30 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const resp = await fetch("{{ url_for('main.camera_autofocus_state') }}");
                 const data = await resp.json();
+                console.log("updateAfStateUI data:", data);
                 if (data.available) {
-                    afEnabled = (data.af_mode === 2 || data.af_mode === 'Continuous');
+                    afEnabled = (data.af_mode === 2); // AfMode 2 is Continuous
                     afBtnLabel.textContent = afEnabled ? 'Autofocus: On' : 'Autofocus: Off';
                     toggleAfBtn.classList.toggle('autofocus-on', afEnabled);
                     toggleAfBtn.classList.toggle('autofocus-off', !afEnabled);
-                    afStatus.textContent = '';
+                    afStatus.textContent = ''; // AF State (e.g., IDLE, SCANNING) could be shown here if desired
+                    toggleAfBtn.disabled = false; // Enable button only if AF system is available
                 } else {
+                    afEnabled = false;
                     afBtnLabel.textContent = 'Autofocus: N/A';
-                    toggleAfBtn.classList.remove('autofocus-on', 'autofocus-off');
+                    toggleAfBtn.classList.remove('autofocus-on');
+                    toggleAfBtn.classList.add('autofocus-off');
                     afStatus.textContent = '';
+                    toggleAfBtn.disabled = true; // Disable if AF system not available
                 }
             } catch (e) {
+                console.error("Error in updateAfStateUI:", e);
+                afEnabled = false;
                 afBtnLabel.textContent = 'Autofocus: Err';
-                toggleAfBtn.classList.remove('autofocus-on', 'autofocus-off');
+                toggleAfBtn.classList.remove('autofocus-on');
+                toggleAfBtn.classList.add('autofocus-off');
                 afStatus.textContent = '';
+                toggleAfBtn.disabled = true; // Disable on error
             }
         }
         toggleAfBtn.addEventListener('click', async () => {
@@ -938,7 +947,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 700); // Increased delay before UI refresh
             } catch (e) {
                 console.error('Error in toggleAfBtn click handler:', e);
-                afBtnLabel.textContent = 'Autofocus: Err';
+                afBtnLabel.textContent = afEnabled ? 'Autofocus: On' : 'Autofocus: Off';
                 // Re-enable button even on error, then refresh UI
                 setTimeout(() => {
                     updateAfStateUI();
