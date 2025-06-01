@@ -601,8 +601,8 @@ def camera_autofocus_state():
 def camera_set_autofocus():
     data = request.get_json()
     enabled = data.get('enabled', False)
-    success, af_state = rpi_camera_instance.set_autofocus(bool(enabled))
-    return jsonify({'success': success, 'enabled': enabled, 'af_state': af_state})
+    success = rpi_camera_instance.set_autofocus(bool(enabled))
+    return jsonify({'success': success, 'enabled': enabled})
 
 @main_bp.route('/camera_trigger_autofocus', methods=['POST'])
 @login_required

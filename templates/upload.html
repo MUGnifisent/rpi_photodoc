@@ -909,25 +909,42 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         toggleAfBtn.addEventListener('click', async () => {
-            afEnabled = !afEnabled;
+            // Current state (before toggle) is in afEnabled
+            const targetEnabledState = !afEnabled;
             afBtnLabel.textContent = '...';
             toggleAfBtn.disabled = true;
             toggleAfBtn.classList.add('is-loading');
+            console.log(`Attempting to set AF to: ${targetEnabledState}`);
             try {
-                await fetch("{{ url_for('main.camera_set_autofocus') }}", {
+                const response = await fetch("{{ url_for('main.camera_set_autofocus') }}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled: afEnabled })
+                    body: JSON.stringify({ enabled: targetEnabledState })
                 });
+                const result = await response.json();
+                console.log('Response from /camera_set_autofocus:', result);
+                if (!response.ok || !result.success) {
+                    console.error('Failed to set autofocus via backend:', result.error || 'Unknown error');
+                    displayNotification(`Failed to set autofocus: ${result.error || 'Server error'}`, 'danger', captureMessagePlaceholder);
+                    // Revert UI to previous state on failure
+                    afBtnLabel.textContent = afEnabled ? 'Autofocus: On' : 'Autofocus: Off'; 
+                }
+                // Always refresh UI from server's reported state after attempting change
+                // Give a slightly longer delay to ensure camera hardware and backend state are settled
+                setTimeout(() => {
+                    updateAfStateUI(); // This will fetch the true current state
+                    toggleAfBtn.disabled = false;
+                    toggleAfBtn.classList.remove('is-loading');
+                }, 700); // Increased delay before UI refresh
+            } catch (e) {
+                console.error('Error in toggleAfBtn click handler:', e);
+                afBtnLabel.textContent = 'Autofocus: Err';
+                // Re-enable button even on error, then refresh UI
                 setTimeout(() => {
                     updateAfStateUI();
                     toggleAfBtn.disabled = false;
                     toggleAfBtn.classList.remove('is-loading');
-                }, 400); // Give camera time to update
-            } catch (e) {
-                afBtnLabel.textContent = 'Autofocus: Err';
-                toggleAfBtn.disabled = false;
-                toggleAfBtn.classList.remove('is-loading');
+                }, 700);
             }
         });
         oneshotAfBtn.addEventListener('click', async () => {
