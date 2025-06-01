@@ -243,4 +243,32 @@ a {
 }
 a:hover {
     color: #ff8c1a;
+}
+
+.button-app-main {
+    background: #ff8800;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1.08em;
+    padding: 0.85em 0;
+    width: 100%;
+    max-width: 100%;
+    min-width: 200px;
+    min-height: 2.8em;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7em;
+    box-shadow: 0 2px 8px 0 rgba(255,136,0,0.10);
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    margin-bottom: 1em;
+    letter-spacing: 0.01em;
+}
+.button-app-main:hover, .button-app-main:focus {
+    background: #ff6a00;
+    color: #fff;
+    box-shadow: 0 2px 12px 0 rgba(255,136,0,0.18);
 } 
