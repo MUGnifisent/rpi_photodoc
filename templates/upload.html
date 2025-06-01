@@ -31,7 +31,7 @@
     }
     .camera-feed-container {
         position: relative;
-        display: none; /* Changed from flex to none for default hidden state */
+        display: flex;
         justify-content: center;
         align-items: center;
         background: #222;
@@ -86,7 +86,7 @@
         background: #ff8800;
         color: #fff;
         border: none;
-        border-radius: 999px; /* Changed from 8px for pill shape */
+        border-radius: 8px;
         box-shadow: none;
         font-weight: 600;
         font-size: 1.1rem;
@@ -162,18 +162,293 @@
         color: #e0e0e0;
         background: #181818;
         border: 1.5px solid #333;
-        border-radius: 999px; /* Changed from 10px for pill shape */
-        padding: 0.7em 2.2em; /* Adjusted padding for consistency */
-        width: auto; /* Changed from 100% to auto */
-        min-width: 180px; /* Added for min size consistency with choose file button */
+        border-radius: 10px;
+        padding: 1em 1.2em;
+        width: 100%;
         text-align: center;
         font-size: 1.08em;
         margin-bottom: 1.2em;
-        margin-top: 0; /* Retain existing vertical margins */
-        margin-left: auto; /* Added for centering */
-        margin-right: auto; /* Added for centering */
+        margin-top: 0;
         box-sizing: border-box;
-        min-height: 2.5em; /* Ensure it has some height, works with padding */
+        min-height: 2.5em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        letter-spacing: 0.01em;
+        box-shadow: 0 1px 4px 0 rgba(0,0,0,0.07);
+    }
+    .box#upload-box {
+        background: #181818;
+        border-radius: 14px;
+        box-shadow: 0 2px 12px 0 rgba(0,0,0,0.12);
+        padding: 2.5em 2em 2em 2em;
+    }
+    .box#upload-box h1,
+    .box#upload-box p,
+    .box#upload-box label,
+    .box#upload-box .file-name {
+        color: #e0e0e0;
+    }
+    .upload-page-container form .field {
+        margin-bottom: 0.5em;
+    }
+    .autofocus-controls button#toggle-af-btn.autofocus-on {
+        background: #10b981;
+        color: #fff;
+        border: none;
+        box-shadow: 0 2px 8px 0 rgba(16,185,129,0.10);
+    }
+    .autofocus-controls button#toggle-af-btn.autofocus-off {
+        background: #232323;
+        color: #e0e0e0;
+        border: none;
+        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+    }
+    .autofocus-controls button#toggle-af-btn {
+        transition: background 0.2s, color 0.2s;
+    }
+    /* Main button style for all major actions */
+    .button-main {
+        background: #ff8800;
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1.08em;
+        padding: 0.85em 0;
+        width: 100%;
+        max-width: 100%;
+        min-width: 200px;
+        min-height: 2.8em;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.7em;
+        box-shadow: 0 2px 8px 0 rgba(255,136,0,0.10);
+        transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+        margin-bottom: 1em;
+        letter-spacing: 0.01em;
+    }
+    .button-main:hover, .button-main:focus {
+        background: #ff6a00;
+        color: #fff;
+        box-shadow: 0 2px 12px 0 rgba(255,136,0,0.18);
+    }
+    /* File input label as button */
+    .custom-file-upload {
+        cursor: pointer;
+        background: #232323;
+        color: #fff;
+        border-radius: 12px;
+        border: 1.5px solid #333;
+        font-size: 1.08em;
+        font-weight: 500;
+        width: 100%;
+        min-width: 200px;
+        min-height: 2.8em;
+        max-width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.7em;
+        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+        margin-bottom: 1em;
+        transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    }
+    .custom-file-upload:hover, .custom-file-upload:focus {
+        background: #ff8800;
+        color: #fff;
+        border-color: #ff8800;
+        box-shadow: 0 2px 12px 0 rgba(255,136,0,0.18);
+    }
+    .custom-file-upload .file-icon {
+        font-size: 1.2em;
+        margin-bottom: 0;
+    }
+    .file-input {
+        display: none;
+    }
+    .file-name {
+        color: #fff;
+        background: #232323;
+        border: 1.5px solid #333;
+        border-radius: 12px;
+        padding: 1em 1.2em;
+        width: 100%;
+        min-width: 200px;
+        min-height: 2.8em;
+        max-width: 100%;
+        text-align: center;
+        font-size: 1.08em;
+        margin-bottom: 1.2em;
+        margin-top: 0;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        letter-spacing: 0.01em;
+        box-shadow: 0 1px 4px 0 rgba(0,0,0,0.07);
+    }
+    .box#upload-box {
+        background: #181818;
+        border-radius: 16px;
+        box-shadow: 0 2px 12px 0 rgba(0,0,0,0.12);
+        padding: 2.5em 2em 2em 2em;
+    }
+    .box#upload-box h1,
+    .box#upload-box p,
+    .box#upload-box label,
+    .box#upload-box .file-name {
+        color: #e0e0e0;
+        text-align: center;
+    }
+    .upload-page-container form .field {
+        margin-bottom: 0.5em;
+    }
+    /* Camera preview box */
+    .camera-feed-container {
+        position: relative;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        background: #232323;
+        border-radius: 16px;
+        border: 1.5px solid #333;
+        box-shadow: 0 2px 12px 0 rgba(0,0,0,0.10);
+        margin: 0 auto 1.5em auto;
+        padding: 0.5em;
+        width: auto;
+        min-width: 0;
+        min-height: 0;
+        max-width: 100%;
+        max-height: 70vh;
+    }
+    .camera-feed-container.visible {
+        display: flex;
+    }
+    .camera-feed {
+        display: none;
+        max-width: 100%;
+        max-height: 60vh;
+        width: auto;
+        height: auto;
+        border-radius: 12px;
+        object-fit: contain;
+        background: #181818;
+        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+        transition: transform 0.3s;
+    }
+    .camera-feed.visible {
+        display: block;
+    }
+    .camera-feed.portrait {
+        transform: rotate(90deg);
+        max-width: 60vh;
+        max-height: 100vw;
+    }
+    .camera-loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #9a9a9a;
+        font-style: italic;
+        z-index: 10;
+    }
+    .button.upload-flat {
+        background: #ff8800;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        box-shadow: none;
+        font-weight: 600;
+        font-size: 1.1rem;
+        padding: 0.9em 0;
+        transition: background 0.2s, box-shadow 0.2s;
+        margin-top: 1.2em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        max-width: 100%;
+        text-align: center;
+        gap: 0.7em;
+        letter-spacing: 0.01em;
+    }
+    .button.upload-flat:hover, .button.upload-flat:focus {
+        background: #ff6a00;
+        color: #fff;
+        box-shadow: 0 2px 8px 0 rgba(255,136,0,0.10);
+    }
+    .autofocus-controls {
+        display: flex;
+        gap: 1em;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 1em;
+    }
+    .autofocus-status {
+        font-size: 0.95em;
+        color: #6ee7b7;
+        margin-left: 0.5em;
+    }
+    .upload-box-label {
+        color: #e0e0e0;
+        font-weight: 600;
+        margin-bottom: 0.5em;
+        display: block;
+        text-align: left;
+    }
+    .custom-file-upload {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        background: #1de9b6;
+        border-radius: 999px;
+        padding: 0.7em 2.2em;
+        cursor: pointer;
+        transition: background 0.2s;
+        border: none;
+        margin-bottom: 1.2em;
+        color: #222;
+        font-size: 1.08em;
+        font-weight: 500;
+        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.08);
+        width: auto;
+        min-width: 180px;
+        max-width: 100%;
+        gap: 0.7em;
+    }
+    .custom-file-upload:hover, .custom-file-upload:focus {
+        background: #13bfa6;
+        color: #111;
+    }
+    .custom-file-upload .file-icon {
+        font-size: 1.3em;
+        margin-bottom: 0;
+    }
+    .file-input {
+        display: none;
+    }
+    .file-name {
+        color: #e0e0e0;
+        background: #181818;
+        border: 1.5px solid #333;
+        border-radius: 10px;
+        padding: 1em 1.2em;
+        width: 100%;
+        text-align: center;
+        font-size: 1.08em;
+        margin-bottom: 1.2em;
+        margin-top: 0;
+        box-sizing: border-box;
+        min-height: 2.5em;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -234,7 +509,7 @@
             <form method="POST" action="{{ url_for('main.process_upload') }}" enctype="multipart/form-data" id="upload-form">
                 <div class="field">
                     <label class="upload-box-label" for="file-upload-input">Image File</label>
-                    <label class="custom-file-upload" tabindex="0">
+                    <label class="custom-file-upload button-main" tabindex="0">
                         <span class="file-icon"><i class="fas fa-upload"></i></span>
                         <span class="file-label">Choose a file...</span>
                         <input class="file-input" type="file" name="file" accept="image/png, image/jpeg, image/webp" id="file-upload-input">
@@ -244,7 +519,7 @@
                 <div id="upload-form-error-placeholder" class="mt-2"></div>
                 <div class="field mt-5">
                     <div class="control has-text-centered">
-                        <button type="submit" class="button upload-flat is-fullwidth is-medium" id="upload-submit-button">
+                        <button type="submit" class="button-main" id="upload-submit-button">
                             <span class="icon"><i class="fas fa-cogs"></i></span>
                             <span>Upload and Process</span>
                         </button>
@@ -276,15 +551,15 @@
                  <img src="" alt="Camera Feed" id="camera-feed-img" class="camera-feed"/>
                  <div class="camera-loading-overlay" id="camera-loading-overlay" style="display: none;">Loading camera...</div>
             </div>
-            <button class="button is-link is-fullwidth mb-2 mt-4 is-rounded" id="start-camera-btn" disabled>
+            <button class="button is-link is-fullwidth mb-2 mt-4" id="start-camera-btn" disabled>
                 <span class="icon"><i class="fas fa-video"></i></span>
                 <span>Start Camera</span>
             </button>
-            <button class="button is-danger is-fullwidth mb-2 mt-4 is-rounded" id="stop-camera-btn" style="display:none;">
+            <button class="button is-danger is-fullwidth mb-2 mt-4" id="stop-camera-btn" style="display:none;">
                 <span class="icon"><i class="fas fa-video-slash"></i></span>
                 <span>Stop Camera</span>
             </button>
-            <button class="button is-primary is-fullwidth is-rounded" id="capture-photo-btn" style="display:none;" disabled>
+            <button class="button is-primary is-fullwidth" id="capture-photo-btn" style="display:none;" disabled>
                 <span class="icon"><i class="fas fa-camera"></i></span>
                 <span>Capture Photo & Process</span>
             </button>
@@ -405,14 +680,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         function showCameraLoading(text = "Loading camera...") {
-            cameraFeedContainer.classList.add('visible'); // Ensure container is visible for loading message
-            cameraFeedImg.classList.remove('visible');    // Hide the actual feed image
+            cameraFeedContainer.classList.remove('visible');
+            cameraFeedImg.classList.remove('visible');
             cameraFeedImg.src = '';
             cameraLoadingOverlay.textContent = text;
-            cameraLoadingOverlay.style.display = 'flex';  // Show loading overlay
+            cameraLoadingOverlay.style.display = 'flex';
         }
         function showCameraPlaceholder() {
-            cameraFeedContainer.classList.remove('visible'); // Hide container
+            cameraFeedContainer.classList.remove('visible');
             cameraFeedImg.classList.remove('visible');
             cameraFeedImg.src = '';
             cameraLoadingOverlay.style.display = 'none';

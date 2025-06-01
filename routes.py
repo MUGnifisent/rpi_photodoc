@@ -253,25 +253,25 @@ def capture_rpi_photo():
         logger.info(f"Image captured successfully to {filepath}")
 
         # Start OCR and LLM processing (similar to process_upload)
-        original_ocr_text = None
+    original_ocr_text = None
         ai_cleaned_text = "Error during processing or no text found."
 
-        try:
+    try:
             logger.info(f"Performing OCR on {filepath}")
-            original_ocr_text = perform_ocr(filepath)
+        original_ocr_text = perform_ocr(filepath)
             logger.info(f"OCR for {filepath}. Length: {len(original_ocr_text if original_ocr_text else [])}")
 
-            if original_ocr_text and original_ocr_text.strip():
+        if original_ocr_text and original_ocr_text.strip():
                 logger.info(f"Calling LLM for cleanup of {filepath}")
-                ai_cleaned_text_result = call_llm("cleanup_ocr", original_ocr_text)
-                if ai_cleaned_text_result.startswith("Error:"):
+            ai_cleaned_text_result = call_llm("cleanup_ocr", original_ocr_text)
+            if ai_cleaned_text_result.startswith("Error:"):
                     logger.warning(f"LLM Error for {unique_filename}: {ai_cleaned_text_result}. Using raw OCR.")
-                    ai_cleaned_text = original_ocr_text
-                else:
-                    ai_cleaned_text = ai_cleaned_text_result
+                ai_cleaned_text = original_ocr_text
+            else:
+                ai_cleaned_text = ai_cleaned_text_result
                 logger.info(f"LLM for {filepath}. AI text length: {len(ai_cleaned_text if ai_cleaned_text else [])}")
             elif original_ocr_text is None:
-                ai_cleaned_text = "OCR process failed or returned no data."
+             ai_cleaned_text = "OCR process failed or returned no data."
                 logger.warning(f"OCR returned None for {filepath}.")
             else:
                 ai_cleaned_text = "No text found by OCR."
@@ -593,7 +593,7 @@ def toggle_camera_orientation():
 # @main_bp.route('/document/<doc_id>/photo/<photo_id>/remove', methods=['POST'])
 
 # Consider adding a route to delete a photo entirely from the system
-# @main_bp.route('/photo/<photo_id>/delete', methods=['POST'])
+# @main_bp.route('/photo/<photo_id>/delete', methods=['POST']) 
 
 @main_bp.route('/camera_autofocus_state', methods=['GET'])
 @login_required
