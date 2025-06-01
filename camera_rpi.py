@@ -181,9 +181,9 @@ class RPiCamera:
         try:
             with self._camera_lock:
                 self._camera.set_controls({"AfMode": 1})  # 1 = Auto (one-shot, int)
-                # AfTrigger expects an int: 0 = Idle, 1 = Start (see libcamera docs)
-                self._camera.set_controls({"AfTrigger": 1})
-                logger.info("One-shot autofocus triggered (AfMode: 1, AfTrigger: 1/Start)")
+                # AfTrigger expects an int: 0 = Start (see libcamera docs)
+                self._camera.set_controls({"AfTrigger": 0})
+                logger.info("One-shot autofocus triggered (AfMode: 1, AfTrigger: 0/Start)")
             return True
         except Exception as e:
             logger.error(f"Failed to trigger autofocus: {e}")
