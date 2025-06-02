@@ -152,7 +152,7 @@ class RPiCamera:
                     logger.info("Stopping stream for high-resolution capture.")
                     self._stop_streaming_internal()
                     # Give camera time to fully stop
-                    time.sleep(0.2)
+                    time.sleep(0.5)
                 
                 logger.info("Configuring for still capture...")
                 
@@ -171,6 +171,19 @@ class RPiCamera:
                 self._camera.switch_mode_and_capture_file(still_config, filepath, wait=True)
                 logger.info(f"Image captured and saved to {filepath}")
                 
+                # Verify file was actually created
+                import os
+                if not os.path.exists(filepath):
+                    logger.error(f"Capture appeared successful but file not found: {filepath}")
+                    return False
+                
+                file_size = os.path.getsize(filepath)
+                logger.info(f"Captured image file size: {file_size} bytes")
+                
+                if file_size < 1000:  # Less than 1KB is probably an error
+                    logger.error(f"Captured image file too small: {file_size} bytes")
+                    return False
+                
                 return True
                 
             except Exception as e:
@@ -180,11 +193,26 @@ class RPiCamera:
                 # Always try to restart streaming if it was active
                 if was_streaming:
                     logger.info("Restarting camera stream after capture.")
-                    # Give a moment before restarting
-                    time.sleep(0.2)
-                    success = self._start_streaming_internal()
-                    if not success:
-                        logger.error("Failed to restart streaming after capture")
+                    # Give more time before restarting
+                    time.sleep(0.5)
+                    
+                    # Try to restart streaming with retries
+                    for attempt in range(3):
+                        try:
+                            success = self._start_streaming_internal()
+                            if success:
+                                logger.info(f"Successfully restarted streaming on attempt {attempt + 1}")
+                                break
+                            else:
+                                logger.warning(f"Failed to restart streaming, attempt {attempt + 1}")
+                                if attempt < 2:  # Don't sleep on last attempt
+                                    time.sleep(1.0)
+                        except Exception as e:
+                            logger.error(f"Error restarting streaming attempt {attempt + 1}: {e}")
+                            if attempt < 2:
+                                time.sleep(1.0)
+                    else:
+                        logger.error("Failed to restart streaming after 3 attempts")
 
     def set_autofocus(self, enabled: bool):
         if not self.is_available():
