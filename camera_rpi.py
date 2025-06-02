@@ -1,12 +1,14 @@
 import time
 import io
-from threading import Condition # Import Condition
+from threading import Condition, Lock, Event # Import Condition, Lock, Event
 from picamera2 import Picamera2
 # from picamera2.encoders import H264Encoder # If MJPEGEncoder is preferred for streaming
 from picamera2.encoders import JpegEncoder
 from picamera2.outputs import FileOutput
 from libcamera import Transform # For potential flipping
+from libcamera import controls as LibcameraControls # Added import
 import logging
+import threading # Added import
 
 logger = logging.getLogger(__name__)
 
@@ -22,44 +24,67 @@ class StreamingOutput(io.BufferedIOBase):
 
 class RPiCamera:
     _instance = None
-    _camera = None
-    _streaming_output = None
-    _is_streaming = False
-    _is_initialized = False
-    _camera_lock = Condition() # For thread-safe access to camera operations if needed
-    portrait_mode = False  # New: portrait mode flag
+    # _camera = None # This will be an instance variable
+    # _streaming_output = None # This will be an instance variable
+    # _is_streaming = False # This will be an instance variable
+    # _is_initialized = False # This will be an instance variable
+    # _camera_lock = Condition() # This will be an instance variable, and should be a Lock
+    # portrait_mode = False  # This will be an instance variable
+    # _af_enabled = False # This will be an instance variable
 
-    def __new__(cls):
-        with cls._camera_lock:
-            if cls._instance is None:
-                cls._instance = super(RPiCamera, cls).__new__(cls)
-                try:
-                    cls._camera = Picamera2()
-                    # Maximal preview (stream) resolution for Camera Module 3: 1920x1080 (practical for streaming)
-                    # Maximal still resolution: 4608x2592
-                    cls.video_config = cls._camera.create_video_configuration(
-                        main={"size": (1920, 1080), "format": "RGB888"},
-                        lores={"size": (1280, 720), "format": "YUV420"},
-                        controls={"FrameRate": 30}
-                    )
-                    cls._camera.configure(cls.video_config)
-                    cls._streaming_output = StreamingOutput()
-                    cls._is_initialized = True
-                    logger.info("RPiCamera initialized successfully.")
-                except Exception as e:
-                    logger.error(f"Critical: Failed to initialize Picamera2: {e}. RPi Camera features will be unavailable. Ensure libcamera is running and camera is connected.")
-                    cls._camera = None
-                    cls._is_initialized = False
-            return cls._instance
+    def __new__(cls, *args, **kwargs): # Modified to accept args and kwargs
+        # Using a simpler singleton pattern, actual initialization in __init__
+        if cls._instance is None:
+            cls._instance = super(RPiCamera, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self, camera_num=0):
+        # Ensure __init__ is called only once for the singleton
+        if hasattr(self, '_initialized_singleton') and self._initialized_singleton:
+            return
+        
+        self.picam2 = None
+        self.camera_num = camera_num
+        self.is_streaming = False # Renamed from _is_streaming
+        self._camera_lock = Lock() # Changed from Condition
+        self._frame_lock = Lock() 
+        self._frame_event = Event()
+        self._latest_frame_bytes = None
+        self._portrait_mode = False  # Default to landscape
+        self._stop_stream_request = Event()
+        self.streaming_thread = None
+        self.encoder = None 
+        self._af_enabled = False # Initialize autofocus state
+        self._streaming_output = StreamingOutput() # Initialize streaming output here
+
+        try:
+            self.picam2 = Picamera2(camera_num=self.camera_num)
+            # Maximal preview (stream) resolution for Camera Module 3: 1920x1080
+            # Maximal still resolution: 4608x2592
+            self.video_config = self.picam2.create_video_configuration(
+                main={"size": (1920, 1080), "format": "RGB888"},
+                lores={"size": (1280, 720), "format": "YUV420"},
+                controls={"FrameRate": 30}
+            )
+            self.picam2.configure(self.video_config)
+            self._is_initialized = True # Moved from __new__
+            logger.info(f"RPiCamera initialized successfully for camera {self.camera_num}.")
+        except Exception as e:
+            logger.error(f"Critical: Failed to initialize Picamera2 for camera {self.camera_num}: {e}. RPi Camera features will be unavailable. Ensure libcamera is running and camera is connected.")
+            self.picam2 = None
+            self._is_initialized = False # Moved from __new__
+        
+        self._initialized_singleton = True
+
 
     def is_available(self):
-        return self._is_initialized and self._camera is not None
+        return self._is_initialized and self.picam2 is not None
 
     def set_portrait_mode(self, enabled: bool):
         with self._camera_lock:
-            self.portrait_mode = enabled
+            self._portrait_mode = enabled
             logger.info(f"Portrait mode set to {enabled}. Restarting stream if active.")
-            if self._is_streaming:
+            if self.is_streaming: # use renamed variable
                 self.stop_streaming()
                 self.start_streaming()
 
@@ -67,61 +92,69 @@ class RPiCamera:
         if not self.is_available():
             logger.warning("Attempted to start streaming, but camera is not available.")
             return False
-        if self._is_streaming:
+        if self.is_streaming: # use renamed variable
             logger.info("Streaming is already active.")
             return True
         try:
             with self._camera_lock:
-                # Set up transform for portrait mode
                 transform = Transform()
-                if self.portrait_mode:
+                if self._portrait_mode: # use instance variable
                     transform = Transform(rotation=90)
-                # Re-create and apply video configuration with the correct transform
-                self.video_config = self._camera.create_video_configuration(
+                
+                # Ensure AfMode is set to Manual (0) initially when stream starts
+                # Continuous AF (2) can be enabled via UI later if desired.
+                current_controls = {"FrameRate": 30, "AfMode": LibcameraControls.AfModeEnum.Manual}
+
+                self.video_config = self.picam2.create_video_configuration(
                     main={"size": (1920, 1080), "format": "RGB888"},
                     lores={"size": (1280, 720), "format": "YUV420"},
                     transform=transform,
-                    controls={"FrameRate": 30, "AfMode": 0}  # Initialize AfMode to Manual
+                    controls=current_controls
                 )
-                self._camera.configure(self.video_config)
-                encoder = JpegEncoder(q=70)
-                self._camera.start_encoder(encoder, FileOutput(self._streaming_output), name='lores')
-                self._camera.start()
-                self._is_streaming = True
-                logger.info(f"Camera streaming started on lores stream. Portrait mode: {self.portrait_mode}. Initial AfMode: 0 (Manual).")
+                self.picam2.configure(self.video_config)
+                
+                # Use JpegEncoder for streaming output
+                self.encoder = JpegEncoder(q=70) # Assign to self.encoder
+                self.picam2.start_encoder(self.encoder, FileOutput(self._streaming_output), name='lores') # Use self.encoder
+                self.picam2.start()
+                self.is_streaming = True # use renamed variable
+                logger.info(f"Camera streaming started on lores stream. Portrait mode: {self._portrait_mode}. Initial AfMode: {current_controls['AfMode']}.")
             return True
         except Exception as e:
-            logger.error(f"Could not start camera streaming: {e}")
-            self._is_streaming = False
+            logger.error(f"Could not start camera streaming: {e}", exc_info=True)
+            self.is_streaming = False # use renamed variable
             return False
 
     def stop_streaming(self):
-        if not self.is_available() or not self._is_streaming:
+        if not self.is_available() or not self.is_streaming: # use renamed variable
             return
         try:
             with self._camera_lock:
-                self._camera.stop()
-                self._camera.stop_encoder()
-                self._is_streaming = False
+                self.picam2.stop()
+                if self.encoder is not None: # Check if encoder was started
+                     self.picam2.stop_encoder()
+                self.is_streaming = False # use renamed variable
                 logger.info("Camera streaming stopped.")
         except Exception as e:
-            logger.error(f"Could not stop camera streaming: {e}")
+            logger.error(f"Could not stop camera streaming: {e}", exc_info=True)
 
     def get_frame(self):
-        if not self.is_available() or not self._is_streaming:
+        if not self.is_available() or not self.is_streaming: # use renamed variable
             logger.warning("get_frame called but camera not available or not streaming.")
             return None
         try:
-            with self._streaming_output.condition: # Ensure thread-safe access to frame
-                if self._streaming_output.condition.wait(timeout=0.1): # Wait for a new frame with timeout
+            with self._streaming_output.condition: 
+                if self._streaming_output.condition.wait(timeout=0.5): # Increased timeout
                     frame = self._streaming_output.frame
                     if frame:
-                         logger.info(f"get_frame: Returning a frame of size {len(frame)} bytes.")
+                         # logger.debug(f"get_frame: Returning a frame of size {len(frame)} bytes.") # DEBUG level
+                         pass
                     else:
                          logger.warning("get_frame: Condition met, but frame is None.")
                     return frame
                 else:
-                    logger.warning("get_frame: Timeout waiting for frame condition, no new frame.") 
+                    # This is a common case if the client disconnects or the browser is not actively fetching
+                    logger.debug("get_frame: Timeout waiting for frame condition, no new frame. This can be normal.") 
                     return None 
         except Exception as e:
             logger.error(f"Error getting frame: {e}", exc_info=True)
@@ -131,26 +164,38 @@ class RPiCamera:
         if not self.is_available():
             logger.error("Camera not initialized or available for capture.")
             raise RuntimeError("Camera not initialized or available.")
-        was_streaming = self._is_streaming
+        was_streaming = self.is_streaming # use renamed variable
         try:
             with self._camera_lock:
                 if was_streaming:
                     logger.info("Stopping stream for high-resolution capture.")
                     self.stop_streaming()
+                
                 logger.info("Configuring for still capture...")
-                # Maximal still resolution for Camera Module 3: 4608x2592
                 transform = Transform()
-                if self.portrait_mode:
+                if self._portrait_mode: # use instance variable
                     transform = Transform(rotation=90)
-                still_config = self._camera.create_still_configuration(
-                    main={"size": (4608, 2592)},
-                    transform=transform
+
+                # Get current AF settings to re-apply if needed, or decide to trigger AF
+                current_af_mode = self.picam2.capture_metadata().get('AfMode', LibcameraControls.AfModeEnum.Manual.value)
+                
+                still_config = self.picam2.create_still_configuration(
+                    main={"size": (4608, 2592)}, # Max resolution for IMX708
+                    transform=transform,
+                    # Preserve current AF mode for the capture if it's not Manual.
+                    # If it was Manual, perhaps trigger a one-shot AF? For now, let's keep it simple.
+                    controls={"AfMode": current_af_mode} 
                 )
-                self._camera.switch_mode_and_capture_file(still_config, filepath, wait=True)
+                # If autofocus is currently enabled (continuous), let it adjust.
+                # If manual, the user should have focused or used one-shot AF.
+                # Optionally, could add a small delay here if AF was continuous.
+                # time.sleep(0.5) # if self._af_enabled
+
+                self.picam2.switch_mode_and_capture_file(still_config, filepath, wait=True)
                 logger.info(f"Image captured and saved to {filepath}")
             return True
         except Exception as e:
-            logger.error(f"Failed to capture image: {e}")
+            logger.error(f"Failed to capture image: {e}", exc_info=True)
             return False
         finally:
             if was_streaming:
@@ -160,44 +205,48 @@ class RPiCamera:
     def set_autofocus(self, enabled: bool):
         if not self.is_available():
             logger.warning("set_autofocus called but camera not available.")
+            self._af_enabled = False
             return False
         try:
             with self._camera_lock:
                 if enabled:
                     logger.info("Attempting to enable continuous autofocus...")
-                    # 1. Set AfMode to Continuous
-                    self._camera.set_controls({"AfMode": 2})
-                    logger.info("Set AfMode: 2 (Continuous).")
-                    time.sleep(0.3)  # Increased delay for AfMode to apply
-                    metadata_after_afmode = self._camera.capture_metadata()
-                    logger.info(f"Metadata after setting AfMode=2: AfMode={metadata_after_afmode.get('AfMode')}, AfState={metadata_after_afmode.get('AfState')}")
+                    self.picam2.set_controls({"AfMode": LibcameraControls.AfModeEnum.Continuous})
+                    logger.info("Set AfMode: Continuous.")
+                    time.sleep(0.3)
+                    metadata_after_afmode = self.picam2.capture_metadata()
+                    logger.info(f"Metadata after setting AfMode=Continuous: AfMode={metadata_after_afmode.get('AfMode')}, AfState={metadata_after_afmode.get('AfState')}")
 
-                    if metadata_after_afmode.get('AfMode') == 2:
-                        # 2. If AfMode is Continuous, then set AfTrigger to Start
-                        self._camera.set_controls({"AfTrigger": 0})
-                        logger.info("Set AfTrigger: 0 (Start).")
-                        time.sleep(0.2) # Delay for AfTrigger to apply
-                        metadata_after_trigger = self._camera.capture_metadata()
+                    if metadata_after_afmode.get('AfMode') == LibcameraControls.AfModeEnum.Continuous.value:
+                        self.picam2.set_controls({"AfTrigger": LibcameraControls.AfTriggerEnum.Start})
+                        logger.info("Set AfTrigger: Start.")
+                        time.sleep(0.2)
+                        metadata_after_trigger = self.picam2.capture_metadata()
                         current_af_mode = metadata_after_trigger.get('AfMode')
                         current_af_state = metadata_after_trigger.get('AfState')
                         logger.info(f"Continuous Autofocus enabled: Final reported state - AfMode: {current_af_mode}, AfState: {current_af_state}")
-                        if current_af_mode != 2:
-                            logger.warning(f"AfMode changed from 2 after AfTrigger. Now: {current_af_mode}")
+                        if current_af_mode == LibcameraControls.AfModeEnum.Continuous.value:
+                            self._af_enabled = True
+                        else:
+                            logger.warning(f"AfMode changed from Continuous after AfTrigger. Now: {current_af_mode}")
+                            self._af_enabled = False
                     else:
-                        logger.warning(f"Failed to set AfMode to Continuous (2). Camera reports: {metadata_after_afmode.get('AfMode')}. AfTrigger will not be sent.")
-
+                        logger.warning(f"Failed to set AfMode to Continuous. Camera reports: {metadata_after_afmode.get('AfMode')}. AfTrigger will not be sent.")
+                        self._af_enabled = False
                 else:
                     logger.info("Attempting to disable autofocus (set to Manual)...")
-                    self._camera.set_controls({"AfMode": 0}) # 0 = Manual (int)
-                    logger.info("Set AfMode: 0 (Manual).")
-                    time.sleep(0.2) # Delay for controls to apply
-                    metadata_after_disable = self._camera.capture_metadata()
+                    self.picam2.set_controls({"AfMode": LibcameraControls.AfModeEnum.Manual})
+                    logger.info("Set AfMode: Manual.")
+                    time.sleep(0.2)
+                    metadata_after_disable = self.picam2.capture_metadata()
                     current_af_mode = metadata_after_disable.get('AfMode')
                     current_af_state = metadata_after_disable.get('AfState')
                     logger.info(f"Autofocus disabled: AfMode reported by camera: {current_af_mode}, AfState: {current_af_state}")
+                    self._af_enabled = False
             return True
         except Exception as e:
             logger.error(f"Failed to set autofocus: {e}", exc_info=True)
+            self._af_enabled = False
             return False
 
     def trigger_autofocus(self):
@@ -206,36 +255,71 @@ class RPiCamera:
             return False
         try:
             with self._camera_lock:
-                self._camera.set_controls({"AfMode": 1})  # 1 = Auto (one-shot, int)
-                # AfTrigger expects an int: 0 = Start (see libcamera docs)
-                self._camera.set_controls({"AfTrigger": 0})
-                logger.info("One-shot autofocus triggered (AfMode: 1, AfTrigger: 0/Start)")
+                logger.info("Triggering one-shot autofocus (AfMode: Auto, AfTrigger: Start)")
+                self.picam2.set_controls({"AfMode": LibcameraControls.AfModeEnum.Auto})
+                time.sleep(0.05) # Short delay between mode set and trigger
+                self.picam2.set_controls({"AfTrigger": LibcameraControls.AfTriggerEnum.Start})
+                logger.info("One-shot autofocus triggered.")
+                # UI will typically re-query get_autofocus_state after a delay.
+                # The internal _af_enabled state should remain as it was (e.g. if continuous was on, it stays on)
+                # unless the one-shot AF action implicitly changes the underlying AfMode to something other than Continuous.
+                # For now, we don't change _af_enabled here, assuming one-shot doesn't permanently disable continuous.
             return True
         except Exception as e:
-            logger.error(f"Failed to trigger autofocus: {e}")
+            logger.error(f"Failed to trigger autofocus: {e}", exc_info=True)
             return False
 
     def get_autofocus_state(self):
+        # Returns the locally stored AF state.
+        is_cam_available = self.is_available()
+        # If camera is available, and we think AF is enabled, we can optionally verify with camera.
+        # However, the user explicitly asked to store state locally and not rely on reading.
+        # So, we will trust our local _af_enabled state.
+        # For future enhancement, we could add:
+        # if is_cam_available and self._af_enabled:
+        #     try:
+        #        metadata = self.picam2.capture_metadata()
+        #        actual_af_mode = metadata.get('AfMode')
+        #        if actual_af_mode != LibcameraControls.AfModeEnum.Continuous.value:
+        #            logger.warning(f"Local AF state is enabled, but camera reports AfMode {actual_af_mode}. Correcting local state.")
+        #            self._af_enabled = False # Or handle appropriately
+        #     except Exception as e:
+        #        logger.error(f"Error trying to verify AF state from camera: {e}")
+        return {
+            "available": is_cam_available,
+            "enabled": self._af_enabled if is_cam_available else False # Only true if camera is available
+        }
+    
+    def get_camera_metadata(self): # Added method to get general metadata
         if not self.is_available():
-            return {"available": False}
+            return None
         try:
-            # Query current autofocus mode and position
-            af_mode = self._camera.capture_metadata().get('AfMode', None)
-            af_state = self._camera.capture_metadata().get('AfState', None)
-            af_position = self._camera.capture_metadata().get('LensPosition', None)
-            return {
-                "available": True,
-                "af_mode": af_mode,
-                "af_state": af_state,
-                "af_position": af_position
-            }
+            return self.picam2.capture_metadata()
         except Exception as e:
-            logger.error(f"Failed to get autofocus state: {e}")
-            return {"available": False, "error": str(e)}
+            logger.error(f"Failed to get camera metadata: {e}")
+            return None
 
-# Global instance for easy access from Flask routes
-# This is generally okay for Picamera2 as it manages its own singleton internally for the camera hardware.
-# However, ensure methods are thread-safe if accessed concurrently.
+    def shutdown(self):
+        logger.info("RPiCamera shutdown sequence initiated.")
+        with self._camera_lock: # Ensure thread-safe operations during shutdown
+            if self.is_streaming:
+                logger.info("Stopping camera stream as part of shutdown...")
+                self.stop_streaming() # This already handles stopping encoder and stream
+
+            if self.picam2 is not None:
+                logger.info("Closing Picamera2 instance...")
+                try:
+                    self.picam2.close()
+                    logger.info("Picamera2 instance closed.")
+                except Exception as e:
+                    logger.error(f"Error closing Picamera2 instance: {e}", exc_info=True)
+                self.picam2 = None
+            
+            self._is_initialized = False
+            self.is_streaming = False # Explicitly set, though stop_streaming should do it
+            logger.info("RPiCamera shutdown sequence completed.")
+
+# Global instance
 rpi_camera_instance = RPiCamera()
 
 if __name__ == '__main__':
@@ -265,13 +349,13 @@ if __name__ == '__main__':
                 print("Failed to capture image.")
             
             # Stream should have restarted if it was active
-            if cam._is_streaming:
+            if cam.is_streaming:
                 print("Streaming is active after capture.")
             else:
                 print("Streaming is NOT active after capture, attempting to restart.")
                 cam.start_streaming()
 
-            if cam._is_streaming:
+            if cam.is_streaming:
                 print("Stopping stream.")
                 cam.stop_streaming()
                 print("Streaming stopped.")

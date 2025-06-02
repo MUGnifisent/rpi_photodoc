@@ -29,49 +29,47 @@
         min-height: 2.5em; /* Space for status messages */
         padding-bottom: 0.5rem;
     }
+    /* Camera preview box */
     .camera-feed-container {
         position: relative;
-        display: none; /* Initially hidden, shown by JS */
+        display: none; /* Initially hidden, made visible by JS */
         justify-content: center;
         align-items: center;
-        background: #232323; /* Dark background for the container */
-        border-radius: 12px; /* Slightly less than card, more than image */
+        background: #232323;
+        border-radius: 16px;
         border: 1.5px solid #333;
         box-shadow: 0 2px 12px 0 rgba(0,0,0,0.10);
         margin: 0 auto 1.5em auto;
-        padding: 0; /* Removed padding to make it wrap tightly */
-        width: auto; /* Will be set by JS */
-        height: auto; /* Will be set by JS */
-        min-width: 200px; /* Minimum sensible size */
-        min-height: 150px; /* Minimum sensible size */
-        max-width: 100%; /* Constrained by parent */
-        max-height: 70vh; /* Overall vertical constraint */
-        overflow: hidden; /* Ensures rotated image doesn't break layout */
+        padding: 0.5em; /* Small padding around the image */
+        /* width: auto; Removed */
+        min-width: 0;
+        min-height: 0; /* Allow it to shrink if needed */
+        max-width: 100%; /* Take full available width of its parent */
+        max-height: 70vh; /* Max height constraint */
+        overflow: hidden; /* Ensure rotated content fits */
+        aspect-ratio: 16/9; /* Default aspect ratio, can be adjusted by JS if needed or image has different one*/
     }
     .camera-feed-container.visible {
         display: flex;
     }
     .camera-feed {
-        display: none; /* Initially hidden */
-        width: 100%;   /* Make image take full width of container */
-        height: 100%;  /* Make image take full height of container */
-        max-width: 100%; /* Redundant if width is 100% but good for clarity */
-        max-height: 100%; /* Redundant if height is 100% but good for clarity */
-        border-radius: 10px; /* Match container's inner feel if any bg shows */
-        object-fit: contain;
-        background: #181818; /* Background for the image area itself if transparent parts */
-        /* box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10); /* Shadow on image might be too much if container has it */
-        transition: transform 0.3s ease-in-out;
+        display: none; /* Initially hidden, made visible by JS */
+        width: 100%;  /* Fill container width */
+        height: 100%; /* Fill container height */
+        object-fit: contain; /* Maintain aspect ratio, fit within dimensions */
+        border-radius: 12px; /* Match container's rounded corners if desired, or slightly less */
+        background: #181818; /* Background for letterboxing if aspect ratios mismatch */
+        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+        transition: transform 0.3s ease-in-out; /* Smooth rotation */
     }
     .camera-feed.visible {
         display: block;
     }
     .camera-feed.portrait {
         transform: rotate(90deg);
-        /* Width/height for portrait are effectively swapped due to rotation */
-        /* The JS will handle container size, image itself uses 100% of that rotated space */
-        /* Ensure transform-origin is center for a good rotation effect */
-        transform-origin: center center;
+        /* When rotated, width and height are effectively swapped for fitting purposes.
+           object-fit: contain will handle scaling within the transformed element's box.
+           No specific max-width/max-height needed here; container constraints apply. */
     }
     .camera-loading-overlay {
         position: absolute;
@@ -310,170 +308,6 @@
     .upload-page-container form .field {
         margin-bottom: 0.5em;
     }
-    /* Camera preview box */
-    .camera-feed-container {
-        position: relative;
-        display: none;
-        justify-content: center;
-        align-items: center;
-        background: #232323;
-        border-radius: 16px;
-        border: 1.5px solid #333;
-        box-shadow: 0 2px 12px 0 rgba(0,0,0,0.10);
-        margin: 0 auto 1.5em auto;
-        padding: 0.5em;
-        width: auto;
-        min-width: 0;
-        min-height: 0;
-        max-width: 100%;
-        max-height: 70vh;
-    }
-    .camera-feed-container.visible {
-        display: flex;
-    }
-    .camera-feed {
-        display: none;
-        max-width: 100%;
-        max-height: 60vh;
-        width: auto;
-        height: auto;
-        border-radius: 12px;
-        object-fit: contain;
-        background: #181818;
-        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
-        transition: transform 0.3s;
-    }
-    .camera-feed.visible {
-        display: block;
-    }
-    .camera-feed.portrait {
-        transform: rotate(90deg);
-        max-width: 60vh;
-        max-height: 100vw;
-    }
-    .camera-loading-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #9a9a9a;
-        font-style: italic;
-        z-index: 10;
-    }
-    .button.upload-flat {
-        background: #ff8800;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        box-shadow: none;
-        font-weight: 600;
-        font-size: 1.1rem;
-        padding: 0.9em 0;
-        transition: background 0.2s, box-shadow 0.2s;
-        margin-top: 1.2em;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        max-width: 100%;
-        text-align: center;
-        gap: 0.7em;
-        letter-spacing: 0.01em;
-    }
-    .button.upload-flat:hover, .button.upload-flat:focus {
-        background: #ff6a00;
-        color: #fff;
-        box-shadow: 0 2px 8px 0 rgba(255,136,0,0.10);
-    }
-    .autofocus-controls {
-        display: flex;
-        gap: 1em;
-        justify-content: center;
-        align-items: center;
-        margin-bottom: 1em;
-    }
-    .autofocus-status {
-        font-size: 0.95em;
-        color: #6ee7b7;
-        margin-left: 0.5em;
-    }
-    .upload-box-label {
-        color: #e0e0e0;
-        font-weight: 600;
-        margin-bottom: 0.5em;
-        display: block;
-        text-align: left;
-    }
-    .custom-file-upload {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: center;
-        background: #1de9b6;
-        border-radius: 999px;
-        padding: 0.7em 2.2em;
-        cursor: pointer;
-        transition: background 0.2s;
-        border: none;
-        margin-bottom: 1.2em;
-        color: #222;
-        font-size: 1.08em;
-        font-weight: 500;
-        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.08);
-        width: auto;
-        min-width: 180px;
-        max-width: 100%;
-        gap: 0.7em;
-    }
-    .custom-file-upload:hover, .custom-file-upload:focus {
-        background: #13bfa6;
-        color: #111;
-    }
-    .custom-file-upload .file-icon {
-        font-size: 1.3em;
-        margin-bottom: 0;
-    }
-    .file-input {
-        display: none;
-    }
-    .file-name {
-        color: #e0e0e0;
-        background: #181818;
-        border: 1.5px solid #333;
-        border-radius: 10px;
-        padding: 1em 1.2em;
-        width: 100%;
-        text-align: center;
-        font-size: 1.08em;
-        margin-bottom: 1.2em;
-        margin-top: 0;
-        box-sizing: border-box;
-        min-height: 2.5em;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        letter-spacing: 0.01em;
-        box-shadow: 0 1px 4px 0 rgba(0,0,0,0.07);
-    }
-    .box#upload-box {
-        background: #181818;
-        border-radius: 14px;
-        box-shadow: 0 2px 12px 0 rgba(0,0,0,0.12);
-        padding: 2.5em 2em 2em 2em;
-    }
-    .box#upload-box h1,
-    .box#upload-box p,
-    .box#upload-box label,
-    .box#upload-box .file-name {
-        color: #e0e0e0;
-    }
-    .upload-page-container form .field {
-        margin-bottom: 0.5em;
-    }
     .autofocus-controls button#toggle-af-btn.autofocus-on {
         background: #10b981;
         color: #fff;
@@ -665,63 +499,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (portraitMode) {
                 portraitBtnLabel.textContent = 'Portrait Mode: On';
                 img.classList.add('portrait');
+                // container.style.aspectRatio = '9/16'; // Optional: Adjust container aspect ratio
             } else {
                 portraitBtnLabel.textContent = 'Portrait Mode: Off';
                 img.classList.remove('portrait');
+                // container.style.aspectRatio = '16/9'; // Optional: Adjust container aspect ratio
             }
 
-            setTimeout(() => {
-                if (img.offsetParent === null || img.naturalWidth === 0 || img.naturalHeight === 0) {
-                    console.warn("updatePortraitButton: Image not visible or no natural dimensions, skipping resize.");
-                    // Optionally, reset container to default flexible state if image disappears
-                    // container.style.width = 'auto'; 
-                    // container.style.height = 'auto';
-                    return;
-                }
-
-                // Get the visual dimensions of the <img> element itself after CSS rotation and object-fit
-                const visualImgWidth = img.offsetWidth;
-                const visualImgHeight = img.offsetHeight;
-                console.log(`updatePortraitButton: Portrait=${portraitMode}, Visual img dimensions: W=${visualImgWidth}, H=${visualImgHeight}`);
-
-                // The container should snugly fit these visual dimensions.
-                let targetContainerWidth = visualImgWidth;
-                let targetContainerHeight = visualImgHeight;
-
-                // Apply container constraints (max-width: 100% of parent, max-height: 70vh)
-                const containerParentWidth = container.parentElement.clientWidth;
-                const viewportHeight = window.innerHeight;
-                const maxContainerHeight = viewportHeight * 0.70;
-
-                if (targetContainerWidth > containerParentWidth) {
-                    targetContainerWidth = containerParentWidth;
-                    // Recalculate height to maintain aspect ratio if width is clamped
-                    if (visualImgWidth > 0) { // Avoid division by zero
-                        targetContainerHeight = (visualImgHeight * targetContainerWidth) / visualImgWidth;
-                    }
-                }
-                if (targetContainerHeight > maxContainerHeight) {
-                    targetContainerHeight = maxContainerHeight;
-                    // Recalculate width to maintain aspect ratio if height is clamped
-                    if (visualImgHeight > 0) { // Avoid division by zero
-                        targetContainerWidth = (visualImgWidth * targetContainerHeight) / visualImgHeight;
-                    }
-                }
-                
-                // Final check: if one dimension was clamped, the other might need clamping again if aspect ratio changed things
-                 if (targetContainerWidth > containerParentWidth) targetContainerWidth = containerParentWidth;
-                 if (targetContainerHeight > maxContainerHeight) targetContainerHeight = maxContainerHeight;
-
-
-                container.style.width = `${Math.round(targetContainerWidth)}px`;
-                container.style.height = `${Math.round(targetContainerHeight)}px`;
-                
-                console.log(`updatePortraitButton: Container set to W=${targetContainerWidth}, H=${targetContainerHeight}`);
-
-                // The img tag is already width/height 100% of container, object-fit handles the rest.
-                // No need to set img.style.maxWidth/Height here as it might conflict.
-            }, 100); // Delay for browser to apply CSS transform and for image to reflow
+            // The CSS should now handle the sizing of the container and image automatically.
+            // No direct style manipulation of container width/height needed here.
+            // We just need to ensure the container is visible if the image is supposed to be visible.
+            if (img.classList.contains('visible') && !container.classList.contains('visible')) {
+                container.classList.add('visible');
+            }
+             console.log(`updatePortraitButton: Toggled portrait class. Portrait mode is now: ${portraitMode}`);
         }
+
         togglePortraitBtn.addEventListener('click', async () => {
             portraitMode = !portraitMode;
             updatePortraitButton();
@@ -983,7 +776,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const originalBtnText = afBtnLabel.textContent;
             if (!toggleAfBtn.classList.contains('is-loading')) {
-                 afBtnLabel.textContent = 'AF: Fetching...'; // More descriptive temp state
+                 afBtnLabel.textContent = 'AF: Fetching...'; 
             }
 
             try {
@@ -992,23 +785,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("updateAfStateUI: Received data from backend:", JSON.stringify(data));
 
                 if (data.available) {
-                    const isCurrentlyContinuous = (data.af_mode === 2);
-                    console.log(`updateAfStateUI: data.af_mode is ${data.af_mode}, isCurrentlyContinuous is ${isCurrentlyContinuous}`);
-                    afEnabled = isCurrentlyContinuous; 
+                    // State from backend is now simpler: data.enabled (boolean)
+                    afEnabled = data.enabled; 
                     
-                    afBtnLabel.textContent = isCurrentlyContinuous ? 'Autofocus: On' : 'Autofocus: Off';
-                    toggleAfBtn.classList.toggle('autofocus-on', isCurrentlyContinuous);
-                    toggleAfBtn.classList.toggle('autofocus-off', !isCurrentlyContinuous);
+                    afBtnLabel.textContent = afEnabled ? 'Autofocus: On' : 'Autofocus: Off';
+                    toggleAfBtn.classList.toggle('autofocus-on', afEnabled);
+                    toggleAfBtn.classList.toggle('autofocus-off', !afEnabled);
                     afStatus.textContent = ''; 
                     toggleAfBtn.disabled = false;
                     console.log("updateAfStateUI: Button state updated. afEnabled:", afEnabled, "Label:", afBtnLabel.textContent);
                 } else {
+                    // Camera or AF system not available
                     console.log("updateAfStateUI: Autofocus system not available or error in data.");
                     afEnabled = false;
                     afBtnLabel.textContent = 'Autofocus: N/A';
                     toggleAfBtn.classList.remove('autofocus-on');
                     toggleAfBtn.classList.add('autofocus-off');
-                    afStatus.textContent = '';
+                    afStatus.textContent = data.error || ''; // Display error if any
                     toggleAfBtn.disabled = true;
                 }
             } catch (e) {

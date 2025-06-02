@@ -594,7 +594,10 @@ def toggle_camera_orientation():
 @main_bp.route('/camera_autofocus_state', methods=['GET'])
 @login_required
 def camera_autofocus_state():
-    return jsonify(rpi_camera_instance.get_autofocus_state())
+    # The rpi_camera_instance.get_autofocus_state() now returns a simpler dict:
+    # {'available': True/False, 'enabled': True/False}
+    state = rpi_camera_instance.get_autofocus_state()
+    return jsonify(state) # Simply pass the new state structure to the frontend
 
 @main_bp.route('/camera_set_autofocus', methods=['POST'])
 @login_required
