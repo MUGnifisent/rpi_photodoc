@@ -232,7 +232,10 @@ def camera_feed():
 @main_bp.route('/capture_rpi_photo', methods=['POST'])
 @login_required
 def capture_rpi_photo():
+    logger.info("=== Starting RPi photo capture process ===")
+    
     if not rpi_camera_instance.is_available():
+        logger.error("Camera not available for capture")
         return jsonify({'success': False, 'error': 'Camera not available.'}), 503
 
     upload_folder = current_app.config['UPLOAD_FOLDER']
@@ -245,71 +248,114 @@ def capture_rpi_photo():
     filepath = os.path.join(upload_folder, unique_filename)
 
     try:
-        logger.info(f"Attempting to capture image to {filepath}")
+        # Step 1: Capture image
+        logger.info(f"Step 1: Attempting to capture image to {filepath}")
         capture_success = rpi_camera_instance.capture_image(filepath)
+        
         if not capture_success:
-            logger.error(f"Failed to capture image to {filepath} by rpi_camera_instance.")
+            logger.error(f"Step 1 FAILED: Camera capture returned False")
             return jsonify({'success': False, 'error': 'Failed to capture image from camera.'}), 500
-        logger.info(f"Image captured successfully to {filepath}")
+        
+        # Verify file exists and has reasonable size
+        if not os.path.exists(filepath):
+            logger.error(f"Step 1 FAILED: Image file not created at {filepath}")
+            return jsonify({'success': False, 'error': 'Image file was not created.'}), 500
+        
+        file_size = os.path.getsize(filepath)
+        logger.info(f"Step 1 SUCCESS: Image captured, file size: {file_size} bytes")
+        
+        if file_size < 10000:  # Less than 10KB is probably an error
+            logger.error(f"Step 1 FAILED: Image file too small: {file_size} bytes")
+            return jsonify({'success': False, 'error': f'Captured image file too small: {file_size} bytes'}), 500
 
-        # Start OCR and LLM processing (similar to process_upload)
+        # Step 2: Perform OCR
+        logger.info(f"Step 2: Starting OCR on {filepath}")
         original_ocr_text = None
         ai_cleaned_text = "Error during processing or no text found."
 
         try:
-            logger.info(f"Performing OCR on {filepath}")
             original_ocr_text = perform_ocr(filepath)
-            logger.info(f"OCR for {filepath}. Length: {len(original_ocr_text if original_ocr_text else [])}")
-
-            if original_ocr_text and original_ocr_text.strip():
-                logger.info(f"Calling LLM for cleanup of {filepath}")
-                ai_cleaned_text_result = call_llm("cleanup_ocr", original_ocr_text)
-                if ai_cleaned_text_result.startswith("Error:"):
-                    logger.warning(f"LLM Error for {unique_filename}: {ai_cleaned_text_result}. Using raw OCR.")
-                    ai_cleaned_text = original_ocr_text
-                else:
-                    ai_cleaned_text = ai_cleaned_text_result
-                logger.info(f"LLM for {filepath}. AI text length: {len(ai_cleaned_text if ai_cleaned_text else [])}")
-            elif original_ocr_text is None:
-                ai_cleaned_text = "OCR process failed or returned no data."
-                logger.warning(f"OCR returned None for {filepath}.")
+            logger.info(f"Step 2 SUCCESS: OCR completed. Text length: {len(original_ocr_text if original_ocr_text else '')}")
+            
+            if original_ocr_text:
+                logger.info(f"OCR preview: {original_ocr_text[:100]}...")
             else:
-                ai_cleaned_text = "No text found by OCR."
-                logger.info(f"Skipping LLM for {filepath} (no/empty OCR text).")
+                logger.warning("OCR returned empty or None")
 
         except Exception as e:
-            logger.error(f"Error in OCR/LLM for captured photo {unique_filename}: {e}", exc_info=True)
-            ai_cleaned_text = original_ocr_text if original_ocr_text else f"Processing Error: {str(e)}"
-            # Flash message for OCR/LLM error, but still try to save photo
-            flash(f'Error during text processing for {original_filename}: {str(e)}. Basic photo info saved.', 'warning')
+            logger.error(f"Step 2 FAILED: OCR error: {e}", exc_info=True)
+            original_ocr_text = ""
+            ai_cleaned_text = f"OCR Error: {str(e)}"
 
-        # Create Photo database record
-        new_photo = create_photo(current_user.id, unique_filename, original_ocr_text, ai_cleaned_text)
-        if not new_photo:
-            logger.error(f"Failed to create photo record in database for {unique_filename}.")
-            flash(f'Failed to save captured photo details for {original_filename} to database.', 'error')
-            return jsonify({'success': False, 'error': 'Failed to save photo metadata to database.'}), 500
+        # Step 3: LLM Processing (only if we have OCR text)
+        if original_ocr_text and original_ocr_text.strip():
+            try:
+                logger.info(f"Step 3: Starting LLM cleanup")
+                ai_cleaned_text_result = call_llm("cleanup_ocr", original_ocr_text)
+                
+                if ai_cleaned_text_result.startswith("Error:"):
+                    logger.warning(f"Step 3 WARNING: LLM returned error: {ai_cleaned_text_result}")
+                    ai_cleaned_text = original_ocr_text  # Fallback to raw OCR
+                else:
+                    ai_cleaned_text = ai_cleaned_text_result
+                    logger.info(f"Step 3 SUCCESS: LLM cleanup completed. Length: {len(ai_cleaned_text)}")
+                    
+            except Exception as e:
+                logger.error(f"Step 3 FAILED: LLM error: {e}", exc_info=True)
+                ai_cleaned_text = original_ocr_text if original_ocr_text else f"LLM Error: {str(e)}"
+        else:
+            logger.info("Step 3 SKIPPED: No OCR text to process")
+            ai_cleaned_text = "No text found by OCR."
 
-        logger.info(f"Photo record created for {unique_filename} with ID {new_photo['id']}.")
+        # Step 4: Create Photo record
+        logger.info(f"Step 4: Creating photo record in database")
+        try:
+            new_photo = create_photo(current_user.id, unique_filename, original_ocr_text, ai_cleaned_text)
+            if not new_photo:
+                logger.error(f"Step 4 FAILED: create_photo returned None")
+                return jsonify({'success': False, 'error': 'Failed to save photo metadata to database.'}), 500
+            
+            logger.info(f"Step 4 SUCCESS: Photo record created with ID {new_photo['id']}")
+            
+        except Exception as e:
+            logger.error(f"Step 4 FAILED: Database error: {e}", exc_info=True)
+            return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
 
-        # Automatically create a document for this new photo
-        doc_name = f"Capture {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-        new_doc = create_document(current_user.id, doc_name, [new_photo['id']])
+        # Step 5: Create Document
+        logger.info(f"Step 5: Creating document for photo")
+        try:
+            doc_name = f"Capture {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            new_doc = create_document(current_user.id, doc_name, [new_photo['id']])
 
-        if not new_doc:
-            logger.error(f"Failed to create document for captured photo {new_photo['id']}.")
-            flash(f'Photo "{original_filename}" was captured and processed, but failed to automatically create a document. Please create one manually from the gallery.', 'warning')
+            if not new_doc:
+                logger.error(f"Step 5 FAILED: create_document returned None")
+                flash(f'Photo "{original_filename}" was captured and processed, but failed to create document. Check gallery.', 'warning')
+                return jsonify({
+                    'success': True, 
+                    'photo_id': new_photo['id'],
+                    'filename': unique_filename,
+                    'warning': 'Photo processed, but document creation failed.',
+                    'message': 'Photo captured and processed. Document creation failed. Redirecting to gallery.',
+                    'redirect_url': url_for('main.gallery_view')
+                }), 200 
+
+            logger.info(f"Step 5 SUCCESS: Document created with ID {new_doc['id']}")
+            
+        except Exception as e:
+            logger.error(f"Step 5 FAILED: Document creation error: {e}", exc_info=True)
+            flash(f'Photo captured and processed, but document creation failed: {str(e)}', 'warning')
             return jsonify({
                 'success': True, 
                 'photo_id': new_photo['id'],
                 'filename': unique_filename,
-                'warning': 'Photo processed, but failed to automatically create a document.',
-                'message': 'Photo captured and processed. Document creation failed. Redirecting to gallery.',
+                'warning': f'Document creation failed: {str(e)}',
                 'redirect_url': url_for('main.gallery_view')
-            }), 200 
+            }), 200
 
-        logger.info(f"Document {new_doc['id']} created for photo {new_photo['id']}.")
+        # All steps successful!
+        logger.info("=== Photo capture process completed successfully ===")
         flash(f'Photo "{original_filename}" captured, processed, and document "{doc_name}" created successfully!', 'success')
+        
         return jsonify({
             'success': True,
             'message': 'Photo captured, processed, and document created.',
@@ -320,9 +366,16 @@ def capture_rpi_photo():
         }), 200
 
     except Exception as e:
-        logger.error(f"Overall error in capture_rpi_photo for {original_filename}: {e}", exc_info=True)
-        flash(f'An unexpected error occurred while capturing/processing {original_filename}: {str(e)}', 'error')
-        return jsonify({'success': False, 'error': f'An unexpected error occurred: {str(e)}'}), 500
+        logger.error(f"=== OVERALL CAPTURE PROCESS FAILED ===: {e}", exc_info=True)
+        # Clean up the file if it was created but process failed
+        if os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+                logger.info(f"Cleaned up failed capture file: {filepath}")
+            except:
+                pass
+        
+        return jsonify({'success': False, 'error': f'Unexpected error during capture: {str(e)}'}), 500
 
 @main_bp.route('/upload', methods=['GET'])
 @login_required
