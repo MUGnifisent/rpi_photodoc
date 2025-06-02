@@ -7,8 +7,6 @@ from routes import main_bp # Changed to absolute import
 from settings_routes import settings_bp, load_settings as load_app_settings, get_config_path, PROMPTS_DIR_NAME, DEFAULT_PROMPT_KEYS, get_prompts_path # Changed to absolute import
 from datetime import datetime # Add this import
 from models import User, load_users, save_users # This is the primary import for models
-import atexit # Import atexit
-from camera_rpi import rpi_camera_instance # Import the camera instance
 
 load_dotenv()
 
@@ -75,9 +73,6 @@ app.register_blueprint(settings_bp) # Registered settings blueprint
 @login_required
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
-# Register the camera shutdown function to be called on exit
-atexit.register(rpi_camera_instance.shutdown)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0') 
