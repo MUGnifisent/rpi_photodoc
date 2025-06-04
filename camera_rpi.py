@@ -156,21 +156,12 @@ class RPiCamera:
                 
                 logger.info(f"Configuring for still capture (portrait mode: {self.portrait_mode})...")
                 
-                # Create still configuration with rotation directly in config
-                if self.portrait_mode:
-                    logger.info("Applying 270-degree rotation for portrait mode capture")
-                    # For portrait mode, we need to rotate 270 degrees (or -90) to correct the orientation
-                    # since 90 degrees in stream might not translate directly to still capture
-                    still_config = self._camera.create_still_configuration(
-                        main={"size": (4608, 2592)},
-                        transform=Transform(rotation=270)  # Try 270 instead of 90
-                    )
-                else:
-                    still_config = self._camera.create_still_configuration(
-                        main={"size": (4608, 2592)}
-                    )
+                # Always capture in landscape mode first - no transforms
+                still_config = self._camera.create_still_configuration(
+                    main={"size": (4608, 2592)}
+                )
                 
-                # Configure the camera with the still config first
+                # Configure the camera with the still config
                 logger.info("Applying still configuration to camera...")
                 self._camera.configure(still_config)
                 
@@ -194,6 +185,33 @@ class RPiCamera:
                 if file_size < 1000:  # Less than 1KB is probably an error
                     logger.error(f"Captured image file too small: {file_size} bytes")
                     return False
+                
+                # Apply software rotation if portrait mode is enabled
+                if self.portrait_mode:
+                    logger.info("Applying software rotation for portrait mode...")
+                    try:
+                        from PIL import Image
+                        
+                        # Open the image
+                        with Image.open(filepath) as img:
+                            # Rotate 90 degrees clockwise for portrait mode
+                            rotated_img = img.rotate(-90, expand=True)
+                            
+                            # Save the rotated image back to the same file
+                            rotated_img.save(filepath, quality=95, optimize=True)
+                            
+                        logger.info(f"Successfully rotated image for portrait mode. New size after rotation.")
+                        
+                        # Verify the rotated file
+                        rotated_size = os.path.getsize(filepath)
+                        logger.info(f"Rotated image file size: {rotated_size} bytes")
+                        
+                    except ImportError:
+                        logger.error("PIL/Pillow not available for image rotation. Install with: pip install Pillow")
+                        return False
+                    except Exception as e:
+                        logger.error(f"Failed to rotate image: {e}")
+                        return False
                 
                 return True
                 
