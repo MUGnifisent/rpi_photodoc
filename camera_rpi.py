@@ -156,17 +156,19 @@ class RPiCamera:
                 
                 logger.info(f"Configuring for still capture (portrait mode: {self.portrait_mode})...")
                 
-                # Set up transform for portrait mode
-                transform = Transform()
+                # Create still configuration with rotation directly in config
                 if self.portrait_mode:
-                    transform = Transform(rotation=90)
-                    logger.info("Applied 90-degree rotation transform for portrait mode")
-                
-                # Create still configuration with explicit transform
-                still_config = self._camera.create_still_configuration(
-                    main={"size": (4608, 2592)},
-                    transform=transform
-                )
+                    logger.info("Applying 270-degree rotation for portrait mode capture")
+                    # For portrait mode, we need to rotate 270 degrees (or -90) to correct the orientation
+                    # since 90 degrees in stream might not translate directly to still capture
+                    still_config = self._camera.create_still_configuration(
+                        main={"size": (4608, 2592)},
+                        transform=Transform(rotation=270)  # Try 270 instead of 90
+                    )
+                else:
+                    still_config = self._camera.create_still_configuration(
+                        main={"size": (4608, 2592)}
+                    )
                 
                 # Configure the camera with the still config first
                 logger.info("Applying still configuration to camera...")

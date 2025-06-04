@@ -321,48 +321,16 @@ def capture_rpi_photo():
             logger.error(f"Step 4 FAILED: Database error: {e}", exc_info=True)
             return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
 
-        # Step 5: Create Document
-        logger.info(f"Step 5: Creating document for photo")
-        try:
-            doc_name = f"Capture {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-            new_doc = create_document(current_user.id, doc_name, [new_photo['id']])
-
-            if not new_doc:
-                logger.error(f"Step 5 FAILED: create_document returned None")
-                flash(f'Photo "{original_filename}" was captured and processed, but failed to create document. Check gallery.', 'warning')
-                return jsonify({
-                    'success': True, 
-                    'photo_id': new_photo['id'],
-                    'filename': unique_filename,
-                    'warning': 'Photo processed, but document creation failed.',
-                    'message': 'Photo captured and processed. Document creation failed. Redirecting to gallery.',
-                    'redirect_url': url_for('main.gallery_view')
-                }), 200 
-
-            logger.info(f"Step 5 SUCCESS: Document created with ID {new_doc['id']}")
-            
-        except Exception as e:
-            logger.error(f"Step 5 FAILED: Document creation error: {e}", exc_info=True)
-            flash(f'Photo captured and processed, but document creation failed: {str(e)}', 'warning')
-            return jsonify({
-                'success': True, 
-                'photo_id': new_photo['id'],
-                'filename': unique_filename,
-                'warning': f'Document creation failed: {str(e)}',
-                'redirect_url': url_for('main.gallery_view')
-            }), 200
-
         # All steps successful!
         logger.info("=== Photo capture process completed successfully ===")
-        flash(f'Photo "{original_filename}" captured, processed, and document "{doc_name}" created successfully!', 'success')
+        flash(f'Photo "{original_filename}" captured and processed successfully!', 'success')
         
         return jsonify({
             'success': True,
-            'message': 'Photo captured, processed, and document created.',
+            'message': 'Photo captured and processed.',
             'photo_id': new_photo['id'],
-            'document_id': new_doc['id'],
             'filename': unique_filename,
-            'redirect_url': url_for('main.document_view', doc_id=new_doc['id'])
+            'redirect_url': url_for('main.gallery_view')
         }), 200
 
     except Exception as e:
