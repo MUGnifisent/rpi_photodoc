@@ -195,7 +195,7 @@ class RPiCamera:
                         # Open the image
                         with Image.open(filepath) as img:
                             # Rotate 90 degrees clockwise for portrait mode
-                            rotated_img = img.rotate(-90, expand=True)
+                            rotated_img = img.rotate(90, expand=True)
                             
                             # Save the rotated image back to the same file
                             rotated_img.save(filepath, quality=95, optimize=True)
