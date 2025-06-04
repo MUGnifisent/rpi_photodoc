@@ -154,21 +154,30 @@ class RPiCamera:
                     # Give camera time to fully stop
                     time.sleep(0.5)
                 
-                logger.info("Configuring for still capture...")
+                logger.info(f"Configuring for still capture (portrait mode: {self.portrait_mode})...")
                 
                 # Set up transform for portrait mode
                 transform = Transform()
                 if self.portrait_mode:
                     transform = Transform(rotation=90)
+                    logger.info("Applied 90-degree rotation transform for portrait mode")
                 
-                # Create still configuration
+                # Create still configuration with explicit transform
                 still_config = self._camera.create_still_configuration(
                     main={"size": (4608, 2592)},
                     transform=transform
                 )
                 
-                # Use switch_mode_and_capture_file for atomic operation
-                self._camera.switch_mode_and_capture_file(still_config, filepath, wait=True)
+                # Configure the camera with the still config first
+                logger.info("Applying still configuration to camera...")
+                self._camera.configure(still_config)
+                
+                # Start camera and capture
+                logger.info("Starting camera and capturing image...")
+                self._camera.start()
+                self._camera.capture_file(filepath, wait=True)
+                self._camera.stop()
+                
                 logger.info(f"Image captured and saved to {filepath}")
                 
                 # Verify file was actually created
