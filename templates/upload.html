@@ -6,311 +6,28 @@
 <style>
     .upload-page-container {
         max-width: 600px;
-        margin: 3rem auto; /* Vertical margin for better spacing */
+        margin: 3rem auto;
     }
     .camera-feed {
         max-width: 100%;
         height: auto;
-        border: 1px solid #4a4a4a; /* From style.css */
+        border: 1px solid #4a4a4a;
         margin-bottom: 1rem;
-        border-radius: 4px; /* From style.css */
-        background-color: #2c2c2c; /* Match input fields */
-        min-height: 240px; /* Default minimum height */
+        border-radius: 4px;
+        background-color: #2c2c2c;
+        min-height: 240px;
     }
     .file-label .file-name {
-        border-width: 1px; /* Ensure file name area also has border */
+        border-width: 1px;
     }
-    /* For loading spinner on buttons */
     .button.is-loading::after {
-        border-color: transparent transparent #fff #fff !important; /* White spinner for dark buttons */
+        border-color: transparent transparent #fff #fff !important;
     }
     #rpi-camera-section .subtitle,
     #rpi-camera-section-unavailable .subtitle {
-        min-height: 2.5em; /* Space for status messages */
+        min-height: 2.5em;
         padding-bottom: 0.5rem;
     }
-    .camera-feed-container {
-        position: relative;
-        display: none; /* Initially hidden, shown by JS */
-        justify-content: center;
-        align-items: center;
-        background: #232323; /* Dark background for the container */
-        border-radius: 12px; /* Slightly less than card, more than image */
-        border: 1.5px solid #333;
-        box-shadow: 0 2px 12px 0 rgba(0,0,0,0.10);
-        margin: 0 auto 1.5em auto;
-        padding: 0; /* Removed padding to make it wrap tightly */
-        width: auto; /* Will be set by JS */
-        height: auto; /* Will be set by JS */
-        min-width: 200px; /* Minimum sensible size */
-        min-height: 150px; /* Minimum sensible size */
-        max-width: 100%; /* Constrained by parent */
-        max-height: 70vh; /* Overall vertical constraint */
-        overflow: hidden; /* Ensures rotated image doesn't break layout */
-    }
-    .camera-feed-container.visible {
-        display: flex;
-    }
-    .camera-feed {
-        display: none; /* Initially hidden */
-        width: 100%;   /* Make image take full width of container */
-        height: 100%;  /* Make image take full height of container */
-        max-width: 100%; /* Redundant if width is 100% but good for clarity */
-        max-height: 100%; /* Redundant if height is 100% but good for clarity */
-        border-radius: 10px; /* Match container's inner feel if any bg shows */
-        object-fit: contain;
-        background: #181818; /* Background for the image area itself if transparent parts */
-        /* box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10); /* Shadow on image might be too much if container has it */
-        transition: transform 0.3s ease-in-out;
-    }
-    .camera-feed.visible {
-        display: block;
-    }
-    .camera-feed.portrait {
-        transform: rotate(90deg);
-        /* Width/height for portrait are effectively swapped due to rotation */
-        /* The JS will handle container size, image itself uses 100% of that rotated space */
-        /* Ensure transform-origin is center for a good rotation effect */
-        transform-origin: center center;
-    }
-    .camera-loading-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #9a9a9a;
-        font-style: italic;
-        z-index: 10;
-    }
-    .button.upload-flat {
-        background: #ff8800;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        box-shadow: none;
-        font-weight: 600;
-        font-size: 1.1rem;
-        padding: 0.9em 0;
-        transition: background 0.2s, box-shadow 0.2s;
-        margin-top: 1.2em;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        max-width: 100%;
-        text-align: center;
-        gap: 0.7em;
-        letter-spacing: 0.01em;
-    }
-    .button.upload-flat:hover, .button.upload-flat:focus {
-        background: #ff6a00;
-        color: #fff;
-        box-shadow: 0 2px 8px 0 rgba(255,136,0,0.10);
-    }
-    .autofocus-controls {
-        display: flex;
-        gap: 1em;
-        justify-content: center;
-        align-items: center;
-        margin-bottom: 1em;
-    }
-    .autofocus-status {
-        font-size: 0.95em;
-        color: #6ee7b7;
-        margin-left: 0.5em;
-    }
-    .upload-box-label {
-        color: #e0e0e0;
-        font-weight: 600;
-        margin-bottom: 0.5em;
-        display: block;
-        text-align: left;
-    }
-    .custom-file-upload {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: center;
-        background: #1de9b6;
-        border-radius: 999px;
-        padding: 0.7em 2.2em;
-        cursor: pointer;
-        transition: background 0.2s;
-        border: none;
-        margin-bottom: 1.2em;
-        color: #222;
-        font-size: 1.08em;
-        font-weight: 500;
-        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.08);
-        width: auto;
-        min-width: 180px;
-        max-width: 100%;
-        gap: 0.7em;
-    }
-    .custom-file-upload:hover, .custom-file-upload:focus {
-        background: #13bfa6;
-        color: #111;
-    }
-    .custom-file-upload .file-icon {
-        font-size: 1.3em;
-        margin-bottom: 0;
-    }
-    .file-input {
-        display: none;
-    }
-    .file-name {
-        color: #e0e0e0;
-        background: #181818;
-        border: 1.5px solid #333;
-        border-radius: 10px;
-        padding: 1em 1.2em;
-        width: 100%;
-        text-align: center;
-        font-size: 1.08em;
-        margin-bottom: 1.2em;
-        margin-top: 0;
-        box-sizing: border-box;
-        min-height: 2.5em;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        letter-spacing: 0.01em;
-        box-shadow: 0 1px 4px 0 rgba(0,0,0,0.07);
-    }
-    .box#upload-box {
-        background: #181818;
-        border-radius: 14px;
-        box-shadow: 0 2px 12px 0 rgba(0,0,0,0.12);
-        padding: 2.5em 2em 2em 2em;
-    }
-    .box#upload-box h1,
-    .box#upload-box p,
-    .box#upload-box label,
-    .box#upload-box .file-name {
-        color: #e0e0e0;
-    }
-    .upload-page-container form .field {
-        margin-bottom: 0.5em;
-    }
-    .autofocus-controls button#toggle-af-btn.autofocus-on {
-        background: #10b981;
-        color: #fff;
-        border: none;
-        box-shadow: 0 2px 8px 0 rgba(16,185,129,0.10);
-    }
-    .autofocus-controls button#toggle-af-btn.autofocus-off {
-        background: #232323;
-        color: #e0e0e0;
-        border: none;
-        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
-    }
-    .autofocus-controls button#toggle-af-btn {
-        transition: background 0.2s, color 0.2s;
-    }
-    /* Main button style for all major actions */
-    .button-main {
-        background: #ff8800;
-        color: #fff;
-        border: none;
-        border-radius: 12px;
-        font-weight: 600;
-        font-size: 1.08em;
-        padding: 0.85em 0;
-        width: 100%;
-        max-width: 100%;
-        min-width: 200px;
-        min-height: 2.8em;
-        text-align: center;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.7em;
-        box-shadow: 0 2px 8px 0 rgba(255,136,0,0.10);
-        transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-        margin-bottom: 1em;
-        letter-spacing: 0.01em;
-    }
-    .button-main:hover, .button-main:focus {
-        background: #ff6a00;
-        color: #fff;
-        box-shadow: 0 2px 12px 0 rgba(255,136,0,0.18);
-    }
-    /* File input label as button */
-    .custom-file-upload {
-        cursor: pointer;
-        background: #232323;
-        color: #fff;
-        border-radius: 12px;
-        border: 1.5px solid #333;
-        font-size: 1.08em;
-        font-weight: 500;
-        width: 100%;
-        min-width: 200px;
-        min-height: 2.8em;
-        max-width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.7em;
-        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
-        margin-bottom: 1em;
-        transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-    }
-    .custom-file-upload:hover, .custom-file-upload:focus {
-        background: #ff8800;
-        color: #fff;
-        border-color: #ff8800;
-        box-shadow: 0 2px 12px 0 rgba(255,136,0,0.18);
-    }
-    .custom-file-upload .file-icon {
-        font-size: 1.2em;
-        margin-bottom: 0;
-    }
-    .file-input {
-        display: none;
-    }
-    .file-name {
-        color: #fff;
-        background: #232323;
-        border: 1.5px solid #333;
-        border-radius: 12px;
-        padding: 1em 1.2em;
-        width: 100%;
-        min-width: 200px;
-        min-height: 2.8em;
-        max-width: 100%;
-        text-align: center;
-        font-size: 1.08em;
-        margin-bottom: 1.2em;
-        margin-top: 0;
-        box-sizing: border-box;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        letter-spacing: 0.01em;
-        box-shadow: 0 1px 4px 0 rgba(0,0,0,0.07);
-    }
-    .box#upload-box {
-        background: #181818;
-        border-radius: 16px;
-        box-shadow: 0 2px 12px 0 rgba(0,0,0,0.12);
-        padding: 2.5em 2em 2em 2em;
-    }
-    .box#upload-box h1,
-    .box#upload-box p,
-    .box#upload-box label,
-    .box#upload-box .file-name {
-        color: #e0e0e0;
-        text-align: center;
-    }
-    .upload-page-container form .field {
-        margin-bottom: 0.5em;
-    }
-    /* Camera preview box */
     .camera-feed-container {
         position: relative;
         display: none;
@@ -360,9 +77,47 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        background: rgba(18, 18, 18, 0.9);
         color: #9a9a9a;
         font-style: italic;
         z-index: 10;
+        border-radius: 12px;
+    }
+    .capture-processing-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(18, 18, 18, 0.95);
+        color: #ff6600;
+        z-index: 20;
+        border-radius: 12px;
+    }
+    .capture-processing-overlay.active {
+        display: flex;
+    }
+    .capture-processing-overlay .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #333;
+        border-top-color: #ff6600;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 1rem;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    .capture-processing-overlay .processing-text {
+        font-size: 1.1rem;
+        font-weight: 500;
+        text-align: center;
+        padding: 0 2rem;
     }
     .button.upload-flat {
         background: #ff8800;
@@ -384,10 +139,14 @@
         gap: 0.7em;
         letter-spacing: 0.01em;
     }
-    .button.upload-flat:hover, .button.upload-flat:focus {
+    .button.upload-flat:hover:not(:disabled), .button.upload-flat:focus:not(:disabled) {
         background: #ff6a00;
         color: #fff;
         box-shadow: 0 2px 8px 0 rgba(255,136,0,0.10);
+    }
+    .button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
     .autofocus-controls {
         display: flex;
@@ -408,34 +167,36 @@
         display: block;
         text-align: left;
     }
-    .custom-file-upload {
+    .button-main {
+        background: #ff8800;
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1.08em;
+        padding: 0.85em 0;
+        width: 100%;
+        max-width: 100%;
+        min-width: 200px;
+        min-height: 2.8em;
+        text-align: center;
         display: flex;
-        flex-direction: row;
         align-items: center;
         justify-content: center;
-        background: #1de9b6;
-        border-radius: 999px;
-        padding: 0.7em 2.2em;
-        cursor: pointer;
-        transition: background 0.2s;
-        border: none;
-        margin-bottom: 1.2em;
-        color: #222;
-        font-size: 1.08em;
-        font-weight: 500;
-        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.08);
-        width: auto;
-        min-width: 180px;
-        max-width: 100%;
         gap: 0.7em;
+        box-shadow: 0 2px 8px 0 rgba(255,136,0,0.10);
+        transition: background 0.2s, color 0.2s, box-shadow 0.2s, opacity 0.2s;
+        margin-bottom: 1em;
+        letter-spacing: 0.01em;
     }
-    .custom-file-upload:hover, .custom-file-upload:focus {
-        background: #13bfa6;
-        color: #111;
+    .button-main:hover:not(:disabled), .button-main:focus:not(:disabled) {
+        background: #ff6a00;
+        color: #fff;
+        box-shadow: 0 2px 12px 0 rgba(255,136,0,0.18);
     }
-    .custom-file-upload .file-icon {
-        font-size: 1.3em;
-        margin-bottom: 0;
+    .button-main:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
     .file-input {
         display: none;
@@ -488,6 +249,21 @@
     }
     .autofocus-controls button#toggle-af-btn {
         transition: background 0.2s, color 0.2s;
+    }
+    .camera-frozen-indicator {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: rgba(255, 102, 0, 0.9);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        font-weight: 600;
+        display: none;
+        z-index: 15;
+    }
+    .camera-frozen-indicator.active {
+        display: block;
     }
 </style>
 {% endblock %}
@@ -554,6 +330,13 @@
             <div class="has-text-centered camera-feed-container" id="camera-feed-container">
                  <img src="" alt="Camera Feed" id="camera-feed-img" class="camera-feed"/>
                  <div class="camera-loading-overlay" id="camera-loading-overlay" style="display: none;">Loading camera...</div>
+                 <div class="capture-processing-overlay" id="capture-processing-overlay">
+                     <div class="spinner"></div>
+                     <div class="processing-text">Processing photo...</div>
+                 </div>
+                 <div class="camera-frozen-indicator" id="camera-frozen-indicator">
+                     <i class="fas fa-pause"></i> Frame Captured
+                 </div>
             </div>
             <button class="button-main mb-2 mt-4" id="start-camera-btn" disabled>
                 <span class="icon"><i class="fas fa-video"></i></span>
@@ -617,18 +400,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayNotification(message, type = 'info', container, isFormError = false) {
         if (!container) {
             console.warn("Notification container not found for message:", message);
-            // Fallback to a generic alert if no container and not a form error
             if(!isFormError) alert(message);
             return;
         }
-        let notificationDiv = container.querySelector('.notification'); // Try to reuse existing for form errors
-        if (!notificationDiv || !isFormError) { // Always create new for non-form errors or if no existing
-            if(isFormError) container.innerHTML = ''; // Clear previous form error
+        let notificationDiv = container.querySelector('.notification');
+        if (!notificationDiv || !isFormError) {
+            if(isFormError) container.innerHTML = '';
             notificationDiv = document.createElement('div');
             notificationDiv.className = `notification is-${type} is-light is-small mb-3`;
             container.appendChild(notificationDiv);
-        } else { // Update existing form error notification
-             notificationDiv.className = `notification is-${type} is-light is-small mb-3`; // Update class for new type
+        } else {
+             notificationDiv.className = `notification is-${type} is-light is-small mb-3`;
         }
         
         notificationDiv.innerHTML = `<button class="delete is-small"></button>${message}`;
@@ -639,10 +421,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const cameraSection = document.getElementById('rpi-camera-section');
-    if (cameraSection) { // Only run camera JS if the section is present (i.e., camera_available was true)
+    if (cameraSection) {
         const cameraFeedImg = document.getElementById('camera-feed-img');
         const cameraFeedContainer = document.getElementById('camera-feed-container');
         const cameraLoadingOverlay = document.getElementById('camera-loading-overlay');
+        const captureProcessingOverlay = document.getElementById('capture-processing-overlay');
+        const cameraFrozenIndicator = document.getElementById('camera-frozen-indicator');
         const startCameraButton = document.getElementById('start-camera-btn');
         const stopCameraButton = document.getElementById('stop-camera-btn');
         const capturePhotoButton = document.getElementById('capture-photo-btn');
@@ -657,6 +441,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let portraitMode = false;
         let afEnabled = false;
         let streamActive = false;
+        let captureInProgress = false;
+        let frozenFrame = null;
 
         function updatePortraitButton() {
             const img = cameraFeedImg;
@@ -669,7 +455,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 img.classList.remove('portrait');
             }
             setTimeout(() => {
-                // Use naturalWidth/naturalHeight for aspect ratio
                 if (img.offsetParent === null || img.naturalWidth === 0 || img.naturalHeight === 0) {
                     container.style.width = 'auto';
                     container.style.height = 'auto';
@@ -677,7 +462,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 let imgW = img.naturalWidth;
                 let imgH = img.naturalHeight;
-                // Swap for portrait
                 if (portraitMode) {
                     [imgW, imgH] = [imgH, imgW];
                 }
@@ -690,7 +474,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 container.style.height = `${targetH}px`;
             }, 100);
         }
+
         togglePortraitBtn.addEventListener('click', async () => {
+            if (captureInProgress) return;
             portraitMode = !portraitMode;
             updatePortraitButton();
             try {
@@ -702,59 +488,81 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) {
                 displayNotification('Failed to toggle portrait mode.', 'danger', captureMessagePlaceholder);
             }
-            if (streamActive) {
+            if (streamActive && !captureInProgress) {
                 showLiveFeed();
             }
         });
+
         function showCameraLoading(text = "Loading camera...") {
             cameraFeedContainer.classList.remove('visible');
             cameraFeedImg.classList.remove('visible');
             cameraFeedImg.src = '';
             cameraLoadingOverlay.textContent = text;
             cameraLoadingOverlay.style.display = 'flex';
+            captureProcessingOverlay.classList.remove('active');
+            cameraFrozenIndicator.classList.remove('active');
         }
+
         function showCameraPlaceholder() {
             cameraFeedContainer.classList.remove('visible');
             cameraFeedImg.classList.remove('visible');
             cameraFeedImg.src = '';
             cameraLoadingOverlay.style.display = 'none';
+            captureProcessingOverlay.classList.remove('active');
+            cameraFrozenIndicator.classList.remove('active');
         }
+
+        function freezeFrame() {
+            // Create a canvas to capture the current frame
+            const canvas = document.createElement('canvas');
+            canvas.width = cameraFeedImg.naturalWidth;
+            canvas.height = cameraFeedImg.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(cameraFeedImg, 0, 0);
+            frozenFrame = canvas.toDataURL('image/jpeg');
+            
+            // Set the frozen frame as the image source
+            cameraFeedImg.src = frozenFrame;
+            cameraFrozenIndicator.classList.add('active');
+        }
+
+        function unfreezeFrame() {
+            if (streamActive && !captureInProgress) {
+                showLiveFeed();
+            }
+            cameraFrozenIndicator.classList.remove('active');
+            frozenFrame = null;
+        }
+
         function showLiveFeed() {
             if (!cameraFeedImg || !cameraFeedContainer || !cameraLoadingOverlay) return;
+            if (captureInProgress) return; // Don't restart feed during capture
 
-            // Set a placeholder/loading appearance before src is set
-            cameraFeedContainer.classList.add('visible'); // Show container
-            cameraFeedImg.classList.remove('visible');   // Hide image until loaded
-            cameraLoadingOverlay.style.display = 'flex'; // Show loading overlay
-            cameraFeedImg.src = ''; // Clear previous src to ensure onload triggers for new one
+            cameraFeedContainer.classList.add('visible');
+            cameraFeedImg.classList.remove('visible');
+            cameraLoadingOverlay.style.display = 'flex';
+            cameraFeedImg.src = '';
 
-            // Set the new source
             const feedUrl = "{{ url_for('main.camera_feed') }}?_nocache=" + new Date().getTime();
             cameraFeedImg.src = feedUrl;
 
-            // Define what happens when the image successfully loads
             cameraFeedImg.onload = () => {
                 console.log("camera_feed_img loaded. Dimensions:", cameraFeedImg.offsetWidth, cameraFeedImg.offsetHeight);
-                cameraFeedImg.classList.add('visible');    // Show image
-                cameraLoadingOverlay.style.display = 'none'; // Hide loading overlay
-                updatePortraitButton(); // This will adjust container size based on loaded image
-                // updateAfStateUI(); // AF state should be independent of image load, called by activateStreamUI
+                cameraFeedImg.classList.add('visible');
+                cameraLoadingOverlay.style.display = 'none';
+                updatePortraitButton();
             };
 
-            // Define what happens if the image fails to load
             cameraFeedImg.onerror = () => {
                 console.error("Failed to load camera feed from URL:", feedUrl);
                 cameraLoadingOverlay.textContent = 'Error loading feed.';
                 cameraFeedImg.classList.remove('visible');
-                // Optionally, call deactivateStreamUI or similar to handle feed error
-                // For now, just shows error in overlay.
             };
         }
 
         async function checkCameraStatus() {
             showCameraLoading("Checking camera status...");
             startCameraButton.disabled = true;
-            // Disable all controls initially
             capturePhotoButton.disabled = true;
             togglePortraitBtn.disabled = true;
             toggleAfBtn.disabled = true;
@@ -769,67 +577,84 @@ document.addEventListener('DOMContentLoaded', () => {
                         activateStreamUI();
                         cameraStatusText.textContent = "Camera live."; 
                     } else {
-                        deactivateStreamUI("Camera ready. Press Start.", false); // Keep start enabled
+                        deactivateStreamUI("Camera ready. Press Start.", false);
                     }
                 } else {
                     cameraStatusText.textContent = data.message || "RPi Camera not available.";
-                    deactivateStreamUI(data.message || "RPi Camera not available.", true); // All buttons remain disabled
+                    deactivateStreamUI(data.message || "RPi Camera not available.", true);
                 }
             } catch (error) {
                 console.error("Error checking camera status:", error);
                 const errorMsg = "Error checking camera status.";
-                deactivateStreamUI(errorMsg, true); // All buttons remain disabled
+                deactivateStreamUI(errorMsg, true);
             }
         }
 
         function activateStreamUI() {
-            showLiveFeed();
+            if (!captureInProgress) {
+                showLiveFeed();
+            }
             startCameraButton.style.display = 'none';
             stopCameraButton.style.display = 'block';
-            stopCameraButton.disabled = false;
+            stopCameraButton.disabled = captureInProgress;
             
             capturePhotoButton.style.display = 'block';
-            capturePhotoButton.disabled = false;
-            togglePortraitBtn.disabled = false;
-            // toggleAfBtn is enabled by its own updateAfStateUI logic
-            oneshotAfBtn.disabled = false;
+            capturePhotoButton.disabled = captureInProgress;
+            togglePortraitBtn.disabled = captureInProgress;
+            oneshotAfBtn.disabled = captureInProgress;
             
             cameraStatusText.textContent = "Camera live.";
             streamActive = true;
-            setTimeout(updateAfStateUI, 500); // Call after a short delay post stream activation
+            setTimeout(updateAfStateUI, 500);
         }
 
         function deactivateStreamUI(statusText = "Camera stopped.", disableAll = true) {
             showCameraPlaceholder();
             startCameraButton.style.display = 'block';
-            startCameraButton.disabled = disableAll; // Only disable start if camera truly unavailable
+            startCameraButton.disabled = disableAll || captureInProgress;
 
             stopCameraButton.style.display = 'none';
             capturePhotoButton.style.display = 'none';
             
-            // Disable all camera controls
             capturePhotoButton.disabled = true;
             togglePortraitBtn.disabled = true;
-            toggleAfBtn.disabled = true; // Will be re-evaluated by updateAfStateUI if needed
+            toggleAfBtn.disabled = true;
             oneshotAfBtn.disabled = true;
             
             cameraStatusText.textContent = statusText;
             streamActive = false;
-            if (disableAll) { // If camera system is off/error, ensure AF button reflects this
-                updateAfStateUI(); // This will set AF button to N/A and disabled
+            captureInProgress = false;
+            if (disableAll) {
+                updateAfStateUI();
+            }
+        }
+
+        function disableAllControls() {
+            startCameraButton.disabled = true;
+            stopCameraButton.disabled = true;
+            capturePhotoButton.disabled = true;
+            togglePortraitBtn.disabled = true;
+            toggleAfBtn.disabled = true;
+            oneshotAfBtn.disabled = true;
+        }
+
+        function enableControlsAfterCapture() {
+            if (streamActive) {
+                stopCameraButton.disabled = false;
+                capturePhotoButton.disabled = false;
+                togglePortraitBtn.disabled = false;
+                toggleAfBtn.disabled = false;
+                oneshotAfBtn.disabled = false;
+            } else {
+                startCameraButton.disabled = false;
             }
         }
 
         startCameraButton.addEventListener('click', async () => {
             startCameraButton.classList.add('is-loading');
-            startCameraButton.disabled = true;
-            // Ensure all other controls are disabled during start attempt
-            capturePhotoButton.disabled = true;
-            togglePortraitBtn.disabled = true;
-            toggleAfBtn.disabled = true;
-            oneshotAfBtn.disabled = true;
-
+            disableAllControls();
             showCameraLoading("Starting camera...");
+            
             try {
                 const response = await fetch("{{ url_for('main.start_camera_stream') }}", { method: 'POST' });
                 const result = await response.json();
@@ -837,46 +662,41 @@ document.addEventListener('DOMContentLoaded', () => {
                     activateStreamUI();
                 } else {
                     const errorMsg = "Failed to start camera: " + (result.error || "Unknown error");
-                    deactivateStreamUI(errorMsg); // This will call showCameraPlaceholder
+                    deactivateStreamUI(errorMsg);
                     displayNotification(errorMsg, 'danger', captureMessagePlaceholder);
                 }
             } catch (error) {
                 console.error("Error starting camera:", error);
                 const errorMsg = "Error starting camera: " + error.message;
-                deactivateStreamUI(errorMsg); // This will call showCameraPlaceholder
+                deactivateStreamUI(errorMsg);
                 displayNotification(errorMsg, 'danger', captureMessagePlaceholder);
             }
             startCameraButton.classList.remove('is-loading');
-            // If successful, activateStreamUI enables buttons. 
-            // If failed, checkCameraStatus or direct call to deactivateStreamUI handles button states.
-            if (!streamActive && !startCameraButton.disabled) { // If failed and start button is not disabled by higher logic
-                 startCameraButton.disabled = false; // Re-enable start if it failed but camera still available
+            if (!streamActive && !startCameraButton.disabled) {
+                startCameraButton.disabled = false;
             }
         });
 
         stopCameraButton.addEventListener('click', async () => {
+            if (captureInProgress) return;
+            
             stopCameraButton.classList.add('is-loading');
-            stopCameraButton.disabled = true;
-            // Disable all controls when stopping
-            capturePhotoButton.disabled = true;
-            togglePortraitBtn.disabled = true;
-            toggleAfBtn.disabled = true;
-            oneshotAfBtn.disabled = true;
-
+            disableAllControls();
             showCameraLoading("Stopping camera...");
+            
             try {
                 const response = await fetch("{{ url_for('main.stop_camera_stream') }}", { method: 'POST' });
                 const result = await response.json();
                 if (response.ok && result.success) {
-                    deactivateStreamUI("Camera stopped. Press Start to resume.", false); // Keep start enabled
+                    deactivateStreamUI("Camera stopped. Press Start to resume.", false);
                 } else {
                     const errorMsg = "Failed to stop camera: " + (result.error || "Unknown error");
                     cameraStatusText.textContent = errorMsg;
                     displayNotification(errorMsg, 'danger', captureMessagePlaceholder);
                     stopCameraButton.disabled = false; 
-                    if(streamActive) { // Re-enable controls if stop failed AND stream was/is active
-                        activateStreamUI(); // This will re-enable appropriate buttons
-                    } else { // Stream not active, ensure they stay disabled
+                    if(streamActive) {
+                        activateStreamUI();
+                    } else {
                         deactivateStreamUI(errorMsg, true);
                     }
                 }
@@ -896,67 +716,82 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         capturePhotoButton.addEventListener('click', async () => {
+            captureInProgress = true;
             capturePhotoButton.classList.add('is-loading');
-            // Disable all other camera interaction buttons during capture
-            capturePhotoButton.disabled = true;
-            startCameraButton.disabled = true; 
-            stopCameraButton.disabled = true; 
-            togglePortraitBtn.disabled = true;
-            toggleAfBtn.disabled = true;
-            oneshotAfBtn.disabled = true;
+            disableAllControls();
+            
+            // Freeze the current frame
+            freezeFrame();
+            
+            // Show processing overlay
+            setTimeout(() => {
+                captureProcessingOverlay.classList.add('active');
+            }, 100);
             
             // Clear previous messages
             if (captureMessagePlaceholder) captureMessagePlaceholder.innerHTML = '';
-            displayNotification('Capturing and processing photo...', 'info', captureMessagePlaceholder);
 
             try {
                 const response = await fetch("{{ url_for('main.capture_rpi_photo') }}", { method: 'POST' });
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    displayNotification(result.message || 'Photo captured and processed successfully!', 'success', captureMessagePlaceholder);
+                    // Update processing text
+                    captureProcessingOverlay.querySelector('.processing-text').textContent = 'Success! Redirecting...';
+                    
                     if (result.redirect_url) {
-                        // Give a moment for the user to see the success message
                         setTimeout(() => {
                             window.location.href = result.redirect_url;
                         }, 1500);
-                    } else if (result.warning) { // Handle cases where document creation might have failed
+                    } else if (result.warning) {
                         displayNotification(result.warning, 'warning', captureMessagePlaceholder);
-                        // Stay on page, photo is processed, but doc needs manual creation
+                        captureInProgress = false;
+                        captureProcessingOverlay.classList.remove('active');
+                        unfreezeFrame();
+                        enableControlsAfterCapture();
                     }
                 } else {
                     const errorMsg = "Capture/Processing failed: " + (result.error || "Unknown error");
                     displayNotification(errorMsg, 'danger', captureMessagePlaceholder);
-                    capturePhotoButton.disabled = false; // Re-enable on failure
+                    captureInProgress = false;
+                    captureProcessingOverlay.classList.remove('active');
+                    unfreezeFrame();
+                    enableControlsAfterCapture();
                 }
             } catch (error) {
                 console.error("Error capturing photo:", error);
                 const errorMsg = "Error during capture: " + error.message;
                 displayNotification(errorMsg, 'danger', captureMessagePlaceholder);
-                capturePhotoButton.disabled = false; // Re-enable on error
+                captureInProgress = false;
+                captureProcessingOverlay.classList.remove('active');
+                unfreezeFrame();
+                enableControlsAfterCapture();
             }
-            // Don't remove loading immediately if redirecting, but do if staying on page
-            if (!capturePhotoButton.disabled) { // Only remove if not disabled (i.e. not about to redirect)
-                 capturePhotoButton.classList.remove('is-loading');
-            }
-            // Re-evaluate camera state for other buttons if not redirecting
-            if (!result.redirect_url) { // If not redirecting, re-check status to update buttons
-                 checkCameraStatus(); 
+            
+            capturePhotoButton.classList.remove('is-loading');
+            
+            // Re-check camera status if not redirecting
+            if (!result || !result.redirect_url) {
+                setTimeout(() => {
+                    if (!captureInProgress) {
+                        checkCameraStatus();
+                    }
+                }, 500);
             }
         });
 
-        // Autofocus state is now local only
         function updateAfStateUI() {
             if (!toggleAfBtn) return;
             afBtnLabel.textContent = afEnabled ? 'Autofocus: On' : 'Autofocus: Off';
             toggleAfBtn.classList.toggle('autofocus-on', afEnabled);
             toggleAfBtn.classList.toggle('autofocus-off', !afEnabled);
             afStatus.textContent = '';
-            toggleAfBtn.disabled = !streamActive;
+            toggleAfBtn.disabled = !streamActive || captureInProgress;
         }
+
         toggleAfBtn.addEventListener('click', async () => {
-            if (!streamActive) {
-                displayNotification("Camera stream not active. Cannot toggle autofocus.", "warning", captureMessagePlaceholder);
+            if (!streamActive || captureInProgress) {
+                displayNotification("Cannot toggle autofocus right now.", "warning", captureMessagePlaceholder);
                 return;
             }
             afEnabled = !afEnabled;
@@ -979,10 +814,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 800);
             }
         });
-        // Oneshot AF button disables AF locally for a moment
+
         oneshotAfBtn.addEventListener('click', async () => {
-            if (!streamActive) {
-                displayNotification("Camera stream not active. Cannot trigger one-shot AF.", "warning", captureMessagePlaceholder);
+            if (!streamActive || captureInProgress) {
+                displayNotification("Cannot trigger autofocus right now.", "warning", captureMessagePlaceholder);
                 return;
             }
             oneshotAfBtn.classList.add('is-loading');
@@ -997,17 +832,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1200);
         });
 
-        // Initial state setup
-        // Call checkCameraStatus first, which then calls activate/deactivateStreamUI.
-        // activateStreamUI will call updateAfStateUI.
-        // If stream is not active initially, updateAfStateUI is called by deactivateStreamUI path in checkCameraStatus.
-        checkCameraStatus(); 
-        // updateAfStateUI(); // This call is likely redundant due to checkCameraStatus calling paths that include it.
-    } // End of camera_available block
+        checkCameraStatus();
+    }
 
-    // Generic handler for dismissing server-side flash messages (if any remain)
     document.querySelectorAll('.notification .delete').forEach((deleteButton) => {
-        if (!deleteButton.dataset.listenerAttached) { // Avoid double-binding if displayNotification already handled it
+        if (!deleteButton.dataset.listenerAttached) {
             deleteButton.addEventListener('click', () => {
                 deleteButton.parentElement.remove();
             });
@@ -1016,4 +845,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 </script>
-{% endblock %} 
+{% endblock %}
