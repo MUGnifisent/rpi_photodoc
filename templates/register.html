@@ -2,15 +2,7 @@
 {% block title %}Sign Up{% endblock %}
 
 {% block head %}
-<style>
-    .auth-container {
-        max-width: 400px;
-        margin: 4rem auto;
-    }
-    .auth-container .box {
-        padding: 2rem;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
 {% endblock %}
 
 {% block content %}

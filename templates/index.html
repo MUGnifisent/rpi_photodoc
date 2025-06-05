@@ -2,23 +2,7 @@
 {% block title %}Welcome{% endblock %}
 
 {% block head %}
-<style>
-    .hero-body .title {
-        font-weight: 600; /* Bolder title for hero */
-    }
-    .hero-body .subtitle {
-        color: #cccccc; /* Lighter subtitle for hero */
-        font-weight: 400;
-    }
-    .feature-list .icon {
-        color: #ff6600; /* Orange icons */
-        margin-right: 0.5em;
-    }
-    .feature-list li {
-        margin-bottom: 0.5em;
-        font-size: 1.1em;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
 {% endblock %}
 
 {% block content %}

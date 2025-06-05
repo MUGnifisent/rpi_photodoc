@@ -1,3 +1,14 @@
+# === COMPREHENSIVE .GITIGNORE FOR RPi OCR FORMATTER ===
+# This file excludes sensitive data, temporary files, and development artifacts
+# 
+# Key exclusions:
+# - User data (uploads/, users.json, documents.json, photos.json)
+# - Configuration files (settings.yaml, .env files)
+# - AI Assistant files (.claude/, .anthropic/, etc.)
+# - Development artifacts (logs, caches, editor files)
+# - Security sensitive files (keys, certificates)
+# - Hardware specific files (camera captures, dumps)
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -60,6 +71,8 @@ db.sqlite3-journal
 # Flask stuff:
 instance/
 .webassets-cache
+flask_session/
+sessions/
 
 # Scrapy stuff:
 .scrapy
@@ -122,7 +135,6 @@ dmypy.json
 
 # Project-specific
 .flaskenv
-*.DS_Store
 
 # OCR Formatter Specific
 uploads/
@@ -134,3 +146,101 @@ photos.json
 # If you add a mechanism for user-uploaded/custom prompts outside this structure, ignore them. 
 
 ocr_logs/
+
+# Claude Code specific files
+.claude/
+CLAUDE.md
+
+# AI Assistant files and caches
+.anthropic/
+.openai/
+.ollama/
+
+# Image enhancement logs
+image_enhancer.log
+
+# Camera and hardware specific files
+test_capture.jpg
+capture_*.jpg
+enhanced_*.jpg
+*.raw
+*.dng
+
+# Temporary files
+temp_*
+*.tmp
+*.temp
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Security sensitive files
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+.secrets/
+
+# Environment specific
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Core dumps and crash reports
+core
+*.dump
+crash_*
+
+# Development and testing
+.pytest_cache/
+htmlcov/
+.coverage*
+.tox/
+test_*
+*_test.py
+
+# Package management
+Pipfile.lock
+poetry.lock
+.pdm.toml
+
+# Jupyter and notebooks (if any are added)
+*.ipynb_checkpoints/
+.ipynb_checkpoints
+
+# Local configuration overrides
+local_config.py
+config_local.py
+settings_local.py
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm/node files (if any frontend tooling is added)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

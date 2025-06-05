@@ -247,7 +247,7 @@ a:hover {
 
 /* Unified button style for all major actions */
 .button-main {
-    background: #ff6600;
+    background: #ff8800;
     color: #fff;
     border: none;
     border-radius: 12px;
@@ -269,7 +269,7 @@ a:hover {
     letter-spacing: 0.01em;
 }
 .button-main:hover, .button-main:focus {
-    background: #e65c00;
+    background: #ff6a00;
     color: #fff;
     box-shadow: 0 2px 12px 0 rgba(255,136,0,0.18);
 }
@@ -315,6 +315,49 @@ a:hover {
 
 .radio input[type="radio"]:checked ~ * {
     color: #ff6600;
+}
+
+/* Checkbox styling matching radio button design */
+.checkbox {
+    color: #e0e0e0;
+    font-weight: 500;
+    padding: 0.75em 1em;
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    margin-bottom: 0.5em;
+    display: block;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.checkbox:hover {
+    background: #252525;
+    border-color: #ff6600;
+    color: #ff6600;
+}
+
+.checkbox input[type="checkbox"] {
+    margin-right: 0.75em;
+    accent-color: #ff6600;
+}
+
+.checkbox input[type="checkbox"]:checked + span,
+.checkbox:has(input[type="checkbox"]:checked) {
+    background: #2a2a2a;
+    border-color: #ff6600;
+    color: #ff6600;
+    font-weight: 600;
+}
+
+/* Fix for older browsers that don't support :has() */
+.checkbox input[type="checkbox"]:checked {
+    accent-color: #ff6600;
+}
+
+.checkbox input[type="checkbox"]:checked ~ * {
+    color: #ff6600;
+    font-weight: 600;
 }
 
 /* Disabled button styling consistency */

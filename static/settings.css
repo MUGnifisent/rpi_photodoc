@@ -1,0 +1,36 @@
+/* Settings page specific styles */
+.settings-container {
+    max-width: 800px;
+    margin: 3rem auto;
+}
+
+.prompt-textarea {
+    min-height: 150px;
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.9em;
+    white-space: pre-wrap; /* Ensure whitespace is respected */
+}
+
+.field label.label {
+    font-weight: bold;
+    color: #e0e0e0; /* Ensure labels are visible */
+}
+
+.ocr-server-settings {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #1a1a1a;
+    border-radius: 6px;
+    border: 1px solid #2c2c2c;
+    display: none;
+}
+
+.ocr-server-settings.visible {
+    display: block;
+}
+
+.ocr-mode-info {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #bbb;
+}

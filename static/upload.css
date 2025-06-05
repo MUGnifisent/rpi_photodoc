@@ -1,0 +1,272 @@
+/* Upload page specific styles */
+.upload-page-container {
+    max-width: 600px;
+    margin: 3rem auto;
+}
+
+.camera-feed {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #4a4a4a;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+    background-color: #2c2c2c;
+    min-height: 240px;
+}
+
+.file-label .file-name {
+    border-width: 1px;
+}
+
+.button.is-loading::after {
+    border-color: transparent transparent #fff #fff !important;
+}
+
+#rpi-camera-section .subtitle,
+#rpi-camera-section-unavailable .subtitle {
+    min-height: 2.5em;
+    padding-bottom: 0.5rem;
+}
+
+.camera-feed-container {
+    position: relative;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    background: #232323;
+    border-radius: 16px;
+    border: 1.5px solid #333;
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.10);
+    margin: 0 auto 1.5em auto;
+    padding: 0.5em;
+    width: auto;
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 70vh;
+}
+
+.camera-feed-container.visible {
+    display: flex;
+}
+
+.camera-feed {
+    display: none;
+    max-width: 100%;
+    max-height: 60vh;
+    width: auto;
+    height: auto;
+    border-radius: 12px;
+    object-fit: contain;
+    background: #181818;
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+    transition: transform 0.3s;
+}
+
+.camera-feed.visible {
+    display: block;
+}
+
+.camera-feed.portrait {
+    transform: rotate(90deg);
+    max-width: 60vh;
+    max-height: 100vw;
+}
+
+.camera-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(18, 18, 18, 0.9);
+    color: #9a9a9a;
+    font-style: italic;
+    z-index: 10;
+    border-radius: 12px;
+}
+
+.capture-processing-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(18, 18, 18, 0.95);
+    color: #ff6600;
+    z-index: 20;
+    border-radius: 12px;
+}
+
+.capture-processing-overlay.active {
+    display: flex;
+}
+
+.capture-processing-overlay .spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #333;
+    border-top-color: #ff6600;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.capture-processing-overlay .processing-text {
+    font-size: 1.1rem;
+    font-weight: 500;
+    text-align: center;
+    padding: 0 2rem;
+}
+
+.button.upload-flat {
+    background: #ff8800;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    box-shadow: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+    padding: 0.9em 0;
+    transition: background 0.2s, box-shadow 0.2s;
+    margin-top: 1.2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 100%;
+    text-align: center;
+    gap: 0.7em;
+    letter-spacing: 0.01em;
+}
+
+.button.upload-flat:hover:not(:disabled), 
+.button.upload-flat:focus:not(:disabled) {
+    background: #ff6a00;
+    color: #fff;
+    box-shadow: 0 2px 8px 0 rgba(255,136,0,0.10);
+}
+
+.button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.autofocus-controls {
+    display: flex;
+    gap: 1em;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1em;
+}
+
+.autofocus-status {
+    font-size: 0.95em;
+    color: #6ee7b7;
+    margin-left: 0.5em;
+}
+
+.upload-box-label {
+    color: #e0e0e0;
+    font-weight: 600;
+    margin-bottom: 0.5em;
+    display: block;
+    text-align: left;
+}
+
+/* button-main styles are now in main style.css */
+
+.file-input {
+    display: none;
+}
+
+.file-name {
+    color: #e0e0e0;
+    background: #181818;
+    border: 1.5px solid #333;
+    border-radius: 12px;
+    padding: 0.85em 1.2em;
+    width: 100%;
+    text-align: center;
+    font-size: 1.08em;
+    margin-bottom: 1.2em;
+    margin-top: 0;
+    box-sizing: border-box;
+    min-height: 2.8em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.01em;
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.file-name.has-file {
+    border-color: #ff6600;
+    color: #ff6600;
+    background: #1e1e1e;
+}
+
+.box#upload-box {
+    background: #181818;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.12);
+    padding: 2.5em 2em 2em 2em;
+}
+
+.box#upload-box h1,
+.box#upload-box p,
+.box#upload-box label,
+.box#upload-box .file-name {
+    color: #e0e0e0;
+}
+
+.upload-page-container form .field {
+    margin-bottom: 0.5em;
+}
+
+.autofocus-controls button#toggle-af-btn.autofocus-on {
+    background: #10b981;
+    color: #fff;
+    border: none;
+    box-shadow: 0 2px 8px 0 rgba(16,185,129,0.10);
+}
+
+.autofocus-controls button#toggle-af-btn.autofocus-off {
+    background: #232323;
+    color: #e0e0e0;
+    border: none;
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+}
+
+.autofocus-controls button#toggle-af-btn {
+    transition: background 0.2s, color 0.2s;
+}
+
+.camera-frozen-indicator {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(255, 102, 0, 0.9);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 600;
+    display: none;
+    z-index: 15;
+}
+
+.camera-frozen-indicator.active {
+    display: block;
+}
