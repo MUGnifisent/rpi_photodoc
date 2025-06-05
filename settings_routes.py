@@ -37,7 +37,27 @@ def load_settings():
         'llm_model_name': 'llama3.1:8b',
         'ocr_mode': 'local',  # 'local' or 'remote'
         'ocr_server_url': 'http://localhost:8080/ocr',
-        'prompts': {key: load_prompt_from_file(key) for key in DEFAULT_PROMPT_KEYS}
+        'prompts': {key: load_prompt_from_file(key) for key in DEFAULT_PROMPT_KEYS},
+        'image_enhancement': {
+            'enabled': False,
+            'denoise_enabled': True,
+            'denoise_strength': 5,
+            'denoise_fast_mode': True,
+            'contrast_enabled': True,
+            'contrast_clip_limit': 2.0,
+            'contrast_preserve_tone': True,
+            'sharpen_enabled': True,
+            'sharpen_strength': 0.8,
+            'color_correction_enabled': True,
+            'color_white_balance': True,
+            'color_saturation_factor': 1.1,
+            'color_temperature_adjustment': 0.0,
+            'camera_optimal_settings': True,
+            'camera_exposure_time': 20000,
+            'camera_analog_gain': 1.0,
+            'camera_awb_mode': 'auto',
+            'camera_sharpness': 1.5
+        }
     }
     try:
         with open(settings_path, 'r') as f:
@@ -49,23 +69,31 @@ def load_settings():
             settings.setdefault('llm_model_name', default_settings['llm_model_name'])
             settings.setdefault('ocr_mode', default_settings['ocr_mode'])
             settings.setdefault('ocr_server_url', default_settings['ocr_server_url'])
+            settings.setdefault('image_enhancement', default_settings['image_enhancement'])
             if 'prompts' not in settings or not isinstance(settings['prompts'], dict):
                 settings['prompts'] = {}
             for key in DEFAULT_PROMPT_KEYS:
                  # If a prompt is missing from settings.yaml, load it from its .txt file
                 settings['prompts'].setdefault(key, load_prompt_from_file(key))
+            # Ensure all image enhancement settings are present
+            if 'image_enhancement' not in settings or not isinstance(settings['image_enhancement'], dict):
+                settings['image_enhancement'] = default_settings['image_enhancement']
+            else:
+                for key, value in default_settings['image_enhancement'].items():
+                    settings['image_enhancement'].setdefault(key, value)
             return settings
     except (FileNotFoundError, yaml.YAMLError):
         return default_settings
 
 def save_settings(settings_data):
-    # When saving settings, save LLM and OCR config to settings.yaml.
+    # When saving settings, save LLM, OCR and image enhancement config to settings.yaml.
     # Prompts are managed as individual files.
     config_to_save = {
         'llm_server_url': settings_data.get('llm_server_url'),
         'llm_model_name': settings_data.get('llm_model_name'),
         'ocr_mode': settings_data.get('ocr_mode', 'local'),
-        'ocr_server_url': settings_data.get('ocr_server_url')
+        'ocr_server_url': settings_data.get('ocr_server_url'),
+        'image_enhancement': settings_data.get('image_enhancement', {})
     }
     with open(get_config_path(SETTINGS_FILE_NAME), 'w') as f:
         yaml.dump(config_to_save, f, indent=4, default_flow_style=False)
@@ -85,6 +113,7 @@ def save_settings(settings_data):
     if 'ocr_mode' in settings_data: current_app.config['OCR_MODE'] = settings_data['ocr_mode']
     if 'ocr_server_url' in settings_data: current_app.config['OCR_SERVER_URL'] = settings_data['ocr_server_url']
     if 'prompts' in settings_data: current_app.config['PROMPTS'] = settings_data['prompts']
+    if 'image_enhancement' in settings_data: current_app.config['IMAGE_ENHANCEMENT'] = settings_data['image_enhancement']
 
 
 @settings_bp.route('/', methods=['GET', 'POST'])
@@ -97,12 +126,42 @@ def manage_settings():
         current_settings['ocr_mode'] = request.form.get('ocr_mode', 'local')
         current_settings['ocr_server_url'] = request.form.get('ocr_server_url', current_settings.get('ocr_server_url'))
         
+        # Handle image enhancement settings
+        image_enhancement = current_settings.get('image_enhancement', {})
+        image_enhancement['enabled'] = 'enhancement_enabled' in request.form
+        image_enhancement['denoise_enabled'] = 'denoise_enabled' in request.form
+        image_enhancement['denoise_strength'] = int(request.form.get('denoise_strength', 5))
+        image_enhancement['denoise_fast_mode'] = 'denoise_fast_mode' in request.form
+        image_enhancement['contrast_enabled'] = 'contrast_enabled' in request.form
+        image_enhancement['contrast_clip_limit'] = float(request.form.get('contrast_clip_limit', 2.0))
+        image_enhancement['contrast_preserve_tone'] = 'contrast_preserve_tone' in request.form
+        image_enhancement['sharpen_enabled'] = 'sharpen_enabled' in request.form
+        image_enhancement['sharpen_strength'] = float(request.form.get('sharpen_strength', 0.8))
+        image_enhancement['color_correction_enabled'] = 'color_correction_enabled' in request.form
+        image_enhancement['color_white_balance'] = 'color_white_balance' in request.form
+        image_enhancement['color_saturation_factor'] = float(request.form.get('color_saturation_factor', 1.1))
+        image_enhancement['color_temperature_adjustment'] = float(request.form.get('color_temperature_adjustment', 0.0))
+        image_enhancement['camera_optimal_settings'] = 'camera_optimal_settings' in request.form
+        image_enhancement['camera_exposure_time'] = int(request.form.get('camera_exposure_time', 20000))
+        image_enhancement['camera_analog_gain'] = float(request.form.get('camera_analog_gain', 1.0))
+        image_enhancement['camera_awb_mode'] = request.form.get('camera_awb_mode', 'auto')
+        image_enhancement['camera_sharpness'] = float(request.form.get('camera_sharpness', 1.5))
+        current_settings['image_enhancement'] = image_enhancement
+        
         new_prompts = {}
         for key in DEFAULT_PROMPT_KEYS:
             new_prompts[key] = request.form.get(f'prompt_{key}', load_prompt_from_file(key)) # Fallback to file content if not in form
         current_settings['prompts'] = new_prompts
             
         save_settings(current_settings)
+        
+        # Refresh image enhancement settings
+        try:
+            from image_enhancement import enhancement_manager
+            enhancement_manager.refresh_settings()
+        except ImportError:
+            pass  # Enhancement manager not available
+        
         flash('Settings and prompts updated successfully!', 'success')
         return redirect(url_for('settings.manage_settings'))
     
@@ -129,3 +188,7 @@ def get_ocr_mode():
 def get_ocr_server_url():
     settings = load_settings()
     return settings.get('ocr_server_url', 'http://localhost:8080/ocr')
+
+def get_image_enhancement_settings():
+    settings = load_settings()
+    return settings.get('image_enhancement', {})

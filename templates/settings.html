@@ -107,6 +107,217 @@
                 </div>
                 
                 <hr>
+                <h2 class="title is-5 mt-5">Image Enhancement</h2>
+                <p class="is-size-7 has-text-grey-light mb-4">Configure image enhancement options to improve OCR accuracy. Enhancements are applied before sending images to OCR.</p>
+                
+                <div class="field">
+                    <div class="control">
+                        <label class="checkbox">
+                            <input type="checkbox" name="enhancement_enabled" {% if settings.image_enhancement.enabled %}checked{% endif %}>
+                            Enable Image Enhancement
+                        </label>
+                    </div>
+                    <p class="help">When enabled, images will be enhanced before OCR processing to improve text recognition accuracy.</p>
+                </div>
+
+                <div class="enhancement-settings" id="enhancement-settings" style="{% if not settings.image_enhancement.enabled %}display: none;{% endif %}">
+                    <div class="box mt-4" style="background-color: #1a1a1a; border: 1px solid #2c2c2c;">
+                        
+                        <!-- Camera Settings -->
+                        <h3 class="title is-6">Camera Settings</h3>
+                        <div class="field">
+                            <div class="control">
+                                <label class="checkbox">
+                                    <input type="checkbox" name="camera_optimal_settings" {% if settings.image_enhancement.camera_optimal_settings %}checked{% endif %}>
+                                    Apply Optimal Camera Settings
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="columns">
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Exposure Time (μs)</label>
+                                    <div class="control">
+                                        <input class="input" type="number" name="camera_exposure_time" value="{{ settings.image_enhancement.camera_exposure_time }}" min="1000" max="100000" step="1000">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Analog Gain</label>
+                                    <div class="control">
+                                        <input class="input" type="number" name="camera_analog_gain" value="{{ settings.image_enhancement.camera_analog_gain }}" min="1.0" max="8.0" step="0.1">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="columns">
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Auto White Balance</label>
+                                    <div class="control">
+                                        <div class="select">
+                                            <select name="camera_awb_mode">
+                                                <option value="auto" {% if settings.image_enhancement.camera_awb_mode == 'auto' %}selected{% endif %}>Auto</option>
+                                                <option value="tungsten" {% if settings.image_enhancement.camera_awb_mode == 'tungsten' %}selected{% endif %}>Tungsten</option>
+                                                <option value="daylight" {% if settings.image_enhancement.camera_awb_mode == 'daylight' %}selected{% endif %}>Daylight</option>
+                                                <option value="cloudy" {% if settings.image_enhancement.camera_awb_mode == 'cloudy' %}selected{% endif %}>Cloudy</option>
+                                                <option value="indoor" {% if settings.image_enhancement.camera_awb_mode == 'indoor' %}selected{% endif %}>Indoor</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Camera Sharpness</label>
+                                    <div class="control">
+                                        <input class="input" type="number" name="camera_sharpness" value="{{ settings.image_enhancement.camera_sharpness }}" min="0.0" max="3.0" step="0.1">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+                        
+                        <!-- Noise Reduction -->
+                        <h3 class="title is-6">Noise Reduction</h3>
+                        <div class="field">
+                            <div class="control">
+                                <label class="checkbox">
+                                    <input type="checkbox" name="denoise_enabled" {% if settings.image_enhancement.denoise_enabled %}checked{% endif %}>
+                                    Enable Noise Reduction
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="columns">
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Denoising Strength (1-10)</label>
+                                    <div class="control">
+                                        <input class="input" type="number" name="denoise_strength" value="{{ settings.image_enhancement.denoise_strength }}" min="1" max="10">
+                                    </div>
+                                    <p class="help">Lower values preserve more detail, higher values remove more noise</p>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
+                                    <div class="control mt-5">
+                                        <label class="checkbox">
+                                            <input type="checkbox" name="denoise_fast_mode" {% if settings.image_enhancement.denoise_fast_mode %}checked{% endif %}>
+                                            Fast Mode (lower quality but faster)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+                        
+                        <!-- Contrast Enhancement -->
+                        <h3 class="title is-6">Contrast Enhancement</h3>
+                        <div class="field">
+                            <div class="control">
+                                <label class="checkbox">
+                                    <input type="checkbox" name="contrast_enabled" {% if settings.image_enhancement.contrast_enabled %}checked{% endif %}>
+                                    Enable Contrast Enhancement
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="columns">
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Clip Limit (1.0-5.0)</label>
+                                    <div class="control">
+                                        <input class="input" type="number" name="contrast_clip_limit" value="{{ settings.image_enhancement.contrast_clip_limit }}" min="1.0" max="5.0" step="0.1">
+                                    </div>
+                                    <p class="help">Controls how much contrast enhancement is applied</p>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
+                                    <div class="control mt-5">
+                                        <label class="checkbox">
+                                            <input type="checkbox" name="contrast_preserve_tone" {% if settings.image_enhancement.contrast_preserve_tone %}checked{% endif %}>
+                                            Preserve Color Tone
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+                        
+                        <!-- Sharpening -->
+                        <h3 class="title is-6">Sharpening</h3>
+                        <div class="field">
+                            <div class="control">
+                                <label class="checkbox">
+                                    <input type="checkbox" name="sharpen_enabled" {% if settings.image_enhancement.sharpen_enabled %}checked{% endif %}>
+                                    Enable Sharpening
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="field">
+                            <label class="label">Sharpening Strength (0.1-2.0)</label>
+                            <div class="control">
+                                <input class="input" type="number" name="sharpen_strength" value="{{ settings.image_enhancement.sharpen_strength }}" min="0.1" max="2.0" step="0.1">
+                            </div>
+                            <p class="help">Higher values increase edge sharpness</p>
+                        </div>
+
+                        <hr>
+                        
+                        <!-- Color Correction -->
+                        <h3 class="title is-6">Color Correction</h3>
+                        <div class="field">
+                            <div class="control">
+                                <label class="checkbox">
+                                    <input type="checkbox" name="color_correction_enabled" {% if settings.image_enhancement.color_correction_enabled %}checked{% endif %}>
+                                    Enable Color Correction
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="field">
+                            <div class="control">
+                                <label class="checkbox">
+                                    <input type="checkbox" name="color_white_balance" {% if settings.image_enhancement.color_white_balance %}checked{% endif %}>
+                                    Auto White Balance Correction
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="columns">
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Saturation Factor (0.5-2.0)</label>
+                                    <div class="control">
+                                        <input class="input" type="number" name="color_saturation_factor" value="{{ settings.image_enhancement.color_saturation_factor }}" min="0.5" max="2.0" step="0.1">
+                                    </div>
+                                    <p class="help">1.0 = no change, higher = more saturated</p>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Temperature Adjustment (-1.0 to 1.0)</label>
+                                    <div class="control">
+                                        <input class="input" type="number" name="color_temperature_adjustment" value="{{ settings.image_enhancement.color_temperature_adjustment }}" min="-1.0" max="1.0" step="0.1">
+                                    </div>
+                                    <p class="help">Negative = cooler, positive = warmer</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <hr>
                 <h2 class="title is-5 mt-5">Default Prompt Templates</h2>
                 <p class="is-size-7 has-text-grey-light mb-4">Edit the default prompts used for various AI actions. The AI will append the relevant text to these templates.</p>
 
@@ -157,6 +368,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add event listeners
     ocrModeLocal.addEventListener('change', updateOcrSettings);
     ocrModeRemote.addEventListener('change', updateOcrSettings);
+    
+    // Handle image enhancement settings toggle
+    const enhancementEnabled = document.querySelector('input[name="enhancement_enabled"]');
+    const enhancementSettings = document.getElementById('enhancement-settings');
+    
+    function updateEnhancementSettings() {
+        if (enhancementEnabled.checked) {
+            enhancementSettings.style.display = 'block';
+        } else {
+            enhancementSettings.style.display = 'none';
+        }
+    }
+    
+    // Set initial state for enhancement settings
+    updateEnhancementSettings();
+    
+    // Add event listener for enhancement toggle
+    enhancementEnabled.addEventListener('change', updateEnhancementSettings);
     
     // Update radio button styling on change
     function updateRadioStyles() {

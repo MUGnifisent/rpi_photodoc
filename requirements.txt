@@ -3,6 +3,7 @@ Flask-Login
 Flask-CORS
 easyocr
 opencv-python-headless
+numpy
 requests
 python-dotenv
 Pillow

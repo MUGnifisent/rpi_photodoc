@@ -29,6 +29,7 @@ from document_manager import (
 )
 from datetime import datetime
 from camera_rpi import rpi_camera_instance # Import the camera instance
+from image_enhancement import enhancement_manager # Import the enhancement manager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -321,6 +322,14 @@ def capture_rpi_photo():
     filepath = os.path.join(upload_folder, unique_filename)
 
     try:
+        # Step 0.5: Apply optimal camera settings if enabled
+        logger.info(f"Step 0.5: Applying camera enhancement settings")
+        try:
+            enhancement_manager.apply_camera_settings(rpi_camera_instance._camera)
+            logger.info(f"Step 0.5 SUCCESS: Camera settings applied")
+        except Exception as e:
+            logger.warning(f"Step 0.5 WARNING: Camera settings error: {e}, continuing with default settings")
+        
         # Step 1: Capture image
         logger.info(f"Step 1: Attempting to capture image to {filepath}")
         capture_success = rpi_camera_instance.capture_image(filepath)
@@ -340,6 +349,17 @@ def capture_rpi_photo():
         if file_size < 10000:  # Less than 10KB is probably an error
             logger.error(f"Step 1 FAILED: Image file too small: {file_size} bytes")
             return jsonify({'success': False, 'error': f'Captured image file too small: {file_size} bytes'}), 500
+
+        # Step 1.5: Apply image enhancement if enabled
+        logger.info(f"Step 1.5: Applying image enhancement")
+        try:
+            enhancement_success = enhancement_manager.enhance_image(filepath)
+            if enhancement_success:
+                logger.info(f"Step 1.5 SUCCESS: Image enhancement completed")
+            else:
+                logger.warning(f"Step 1.5 WARNING: Image enhancement failed, continuing with original image")
+        except Exception as e:
+            logger.error(f"Step 1.5 WARNING: Image enhancement error: {e}, continuing with original image")
 
         # Step 2: Perform OCR
         ocr_mode = get_ocr_mode()
@@ -457,6 +477,17 @@ def process_upload():
             logger.error(f"Error saving uploaded file '{unique_filename}': {e}")
             flash(f"Error saving file: {e}", "error")
             return redirect(url_for('main.upload_page'))
+
+        # Apply image enhancement if enabled
+        logger.info(f"Applying image enhancement to uploaded file")
+        try:
+            enhancement_success = enhancement_manager.enhance_image(filepath)
+            if enhancement_success:
+                logger.info(f"Image enhancement completed for uploaded file")
+            else:
+                logger.warning(f"Image enhancement failed for uploaded file, continuing with original")
+        except Exception as e:
+            logger.error(f"Image enhancement error for uploaded file: {e}, continuing with original")
 
         original_ocr_text = None
         ai_cleaned_text = "Error during processing or no text found." # Default
