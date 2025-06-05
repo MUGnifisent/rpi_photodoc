@@ -366,7 +366,7 @@ def capture_rpi_photo():
         # Step 0.5: Apply optimal camera settings if enabled
         logger.info(f"Step 0.5: Applying camera enhancement settings")
         try:
-            enhancement_manager.apply_camera_settings(rpi_camera_instance._camera)
+            enhancement_manager.apply_camera_settings(rpi_camera_instance._camera, current_user.id)
             logger.info(f"Step 0.5 SUCCESS: Camera settings applied")
         except Exception as e:
             logger.warning(f"Step 0.5 WARNING: Camera settings error: {e}, continuing with default settings")
@@ -375,7 +375,7 @@ def capture_rpi_photo():
         logger.info(f"Step 1: Checking for experimental capture enhancers")
         experimental_result = None
         try:
-            experimental_result = enhancement_manager.apply_experimental_capture(rpi_camera_instance._camera, filepath)
+            experimental_result = enhancement_manager.apply_experimental_capture(rpi_camera_instance._camera, filepath, current_user.id)
             if experimental_result:
                 logger.info(f"Step 1 SUCCESS: Experimental enhancement captured to {experimental_result}")
                 # Skip normal capture since experimental enhancer handled it
@@ -412,7 +412,7 @@ def capture_rpi_photo():
         else:
             logger.info(f"Step 1.5: Applying standard image enhancement")
             try:
-                enhancement_success = enhancement_manager.enhance_image(filepath)
+                enhancement_success = enhancement_manager.enhance_image(filepath, current_user.id)
                 if enhancement_success:
                     logger.info(f"Step 1.5 SUCCESS: Image enhancement completed")
                 else:
@@ -542,7 +542,7 @@ def process_upload():
         # Apply image enhancement if enabled
         logger.info(f"Applying image enhancement to uploaded file")
         try:
-            enhancement_success = enhancement_manager.enhance_image(filepath)
+            enhancement_success = enhancement_manager.enhance_image(filepath, current_user.id)
             if enhancement_success:
                 logger.info(f"Image enhancement completed for uploaded file")
             else:

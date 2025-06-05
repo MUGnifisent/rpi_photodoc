@@ -1,83 +1,163 @@
-import json
-import os
-from flask import current_app # Added current_app for filepath
+"""
+User models for RPi PhotoDoc OCR application.
+Now using SQLite database instead of JSON files.
+"""
+
+import logging
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from database import get_db, get_db_connection
 
-USER_DATA_FILE = 'config/users.json'  # Updated path
-
-def get_user_data_path():
-    return os.path.join(current_app.root_path, USER_DATA_FILE)
-
-users = {} # This will now be populated from the file
-next_user_id = 1
-
-def load_users():
-    global users, next_user_id
-    try:
-        with open(get_user_data_path(), 'r') as f:
-            data = json.load(f)
-            users_list = data.get('users', [])
-            users = {int(u['id']): User(id=int(u['id']), username=u['username'], password_hash=u['password_hash']) for u in users_list}
-            next_user_id = data.get('next_user_id', 1)
-            if not users: # If users_list was empty or not found
-                next_user_id = 1
-            elif users:
-                 # Ensure next_user_id is greater than any existing ID
-                max_id = max(users.keys())
-                next_user_id = max(next_user_id, max_id + 1)
-
-    except (FileNotFoundError, json.JSONDecodeError):
-        users = {}
-        next_user_id = 1
-
-def save_users():
-    # Convert User objects to dictionaries for JSON serialization
-    users_serializable = [{"id": u.id, "username": u.username, "password_hash": u.password_hash} for u in users.values()]
-    data = {'users': users_serializable, 'next_user_id': next_user_id}
-    with open(get_user_data_path(), 'w') as f:
-        json.dump(data, f, indent=4)
+logger = logging.getLogger(__name__)
 
 class User(UserMixin):
-    def __init__(self, id, username, password_hash):
+    def __init__(self, id, username, password_hash, created_at=None, updated_at=None):
         self.id = id
         self.username = username
         self.password_hash = password_hash
+        self.created_at = created_at
+        self.updated_at = updated_at
 
     def set_password(self, password):
+        """Set user password with proper hashing"""
         self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
     def check_password(self, password):
+        """Check if provided password matches stored hash"""
         return check_password_hash(self.password_hash, password)
+
+    def save(self):
+        """Save user changes to database"""
+        try:
+            db = get_db()
+            db.execute(
+                'UPDATE users SET username = ?, password_hash = ? WHERE id = ?',
+                (self.username, self.password_hash, self.id)
+            )
+            db.commit()
+            logger.info(f"User {self.id} updated successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Error updating user {self.id}: {e}")
+            return False
 
     @staticmethod
     def get(user_id):
-        return users.get(int(user_id))
+        """Get user by ID"""
+        try:
+            db = get_db()
+            user_row = db.execute(
+                'SELECT id, username, password_hash, created_at, updated_at FROM users WHERE id = ?',
+                (user_id,)
+            ).fetchone()
+            
+            if user_row:
+                return User(
+                    id=user_row['id'],
+                    username=user_row['username'], 
+                    password_hash=user_row['password_hash'],
+                    created_at=user_row['created_at'],
+                    updated_at=user_row['updated_at']
+                )
+            return None
+        except Exception as e:
+            logger.error(f"Error getting user {user_id}: {e}")
+            return None
 
     @staticmethod
     def get_by_username(username):
-        for user in users.values():
-            if user.username == username:
-                return user
-        return None
+        """Get user by username"""
+        try:
+            db = get_db()
+            user_row = db.execute(
+                'SELECT id, username, password_hash, created_at, updated_at FROM users WHERE username = ?',
+                (username,)
+            ).fetchone()
+            
+            if user_row:
+                return User(
+                    id=user_row['id'],
+                    username=user_row['username'],
+                    password_hash=user_row['password_hash'],
+                    created_at=user_row['created_at'],
+                    updated_at=user_row['updated_at']
+                )
+            return None
+        except Exception as e:
+            logger.error(f"Error getting user by username {username}: {e}")
+            return None
 
     @staticmethod
     def create(username, password):
-        global next_user_id
-        if User.get_by_username(username):
-            return None # User already exists
-        
-        # Ensure next_user_id is unique if multiple users are created quickly or after loading
-        while next_user_id in users:
-             next_user_id +=1
+        """Create a new user"""
+        try:
+            # Check if user already exists
+            if User.get_by_username(username):
+                logger.warning(f"User {username} already exists")
+                return None
+            
+            password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+            
+            db = get_db()
+            cursor = db.execute(
+                'INSERT INTO users (username, password_hash) VALUES (?, ?)',
+                (username, password_hash)
+            )
+            db.commit()
+            
+            user_id = cursor.lastrowid
+            logger.info(f"User {username} created with ID {user_id}")
+            
+            return User.get(user_id)
+            
+        except Exception as e:
+            logger.error(f"Error creating user {username}: {e}")
+            return None
 
-        user = user = User(id=next_user_id, username=username, password_hash=generate_password_hash(password, method='pbkdf2:sha256'))
-        users[next_user_id] = user
-        next_user_id += 1
-        save_users() # Save after creating a new user
-        return user
+    @staticmethod
+    def get_all():
+        """Get all users (admin function)"""
+        try:
+            db = get_db()
+            users = db.execute(
+                'SELECT id, username, password_hash, created_at, updated_at FROM users ORDER BY created_at'
+            ).fetchall()
+            
+            return [User(
+                id=row['id'],
+                username=row['username'],
+                password_hash=row['password_hash'],
+                created_at=row['created_at'],
+                updated_at=row['updated_at']
+            ) for row in users]
+            
+        except Exception as e:
+            logger.error(f"Error getting all users: {e}")
+            return []
 
-# Initial load of users when the module is imported
-# This needs the app context to know current_app.root_path, 
-# so we will call it from app.py after app is created.
-# load_users() 
+    @staticmethod
+    def delete(user_id):
+        """Delete a user and all associated data"""
+        try:
+            db = get_db()
+            db.execute('DELETE FROM users WHERE id = ?', (user_id,))
+            db.commit()
+            logger.info(f"User {user_id} deleted successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting user {user_id}: {e}")
+            return False
+
+    def __repr__(self):
+        return f'<User {self.username}>'
+
+# Legacy functions for compatibility (these can be removed after testing)
+def load_users():
+    """Legacy function - no longer needed with SQLite"""
+    logger.info("load_users() called - no action needed with SQLite")
+    pass
+
+def save_users():
+    """Legacy function - no longer needed with SQLite"""
+    logger.info("save_users() called - no action needed with SQLite")
+    pass

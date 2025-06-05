@@ -10,7 +10,7 @@ import cv2
 import numpy as np
 import yaml
 from typing import Optional
-from settings_routes import get_image_enhancement_settings
+from user_settings import get_image_enhancement_settings
 from rpi_cam_enchance import (
     ImageEnhancer,
     OptimalSettingsEnhancer,
@@ -102,17 +102,29 @@ class ImageEnhancementManager:
         # Ensure OCR server config exists
         ensure_ocr_server_config()
     
-    def _initialize_enhancer(self):
+    def _initialize_enhancer(self, user_id=None):
         """Initialize the image enhancer based on current settings"""
         try:
             # Import here to avoid Flask context issues
             from flask import has_app_context
+            from flask_login import current_user
+            
             if not has_app_context():
                 logger.warning("No Flask app context available, skipping enhancement initialization")
                 return
-                
-            self.settings = get_image_enhancement_settings()
-            logger.info(f"Initializing image enhancer with settings: {self.settings}")
+            
+            # Get user ID for settings
+            if user_id is None and current_user.is_authenticated:
+                user_id = current_user.id
+            
+            if user_id:
+                self.settings = get_image_enhancement_settings(user_id)
+                logger.info(f"Initializing image enhancer for user {user_id} with settings: {self.settings}")
+            else:
+                # Use defaults for anonymous users
+                from user_settings import DEFAULT_USER_SETTINGS
+                self.settings = DEFAULT_USER_SETTINGS['image_enhancement']
+                logger.info("Initializing image enhancer with default settings (anonymous user)")
             
             if not self.settings or not self.settings.get('enabled', False):
                 logger.info("Image enhancement is disabled or settings not available")
@@ -181,16 +193,17 @@ class ImageEnhancementManager:
             self.enhancer = None
             self._initialized = True
     
-    def apply_camera_settings(self, camera):
+    def apply_camera_settings(self, camera, user_id=None):
         """
         Apply optimal camera settings before capture if enabled.
         
         Args:
             camera: Picamera2 camera object
+            user_id: User ID for settings lookup
         """
         try:
             if not self._initialized:
-                self._initialize_enhancer()
+                self._initialize_enhancer(user_id)
                 
             if not self.settings or not self.settings.get('enabled', False):
                 return
@@ -211,20 +224,21 @@ class ImageEnhancementManager:
         except Exception as e:
             logger.error(f"Failed to apply camera settings: {e}")
     
-    def apply_experimental_capture(self, camera, output_path: str) -> Optional[str]:
+    def apply_experimental_capture(self, camera, output_path: str, user_id=None) -> Optional[str]:
         """
         Apply experimental camera-based enhancers that capture their own images.
         
         Args:
             camera: Picamera2 camera object
             output_path: Path where to save the final image
+            user_id: User ID for settings lookup
             
         Returns:
             str: Path to enhanced image if successful, None if failed or not enabled
         """
         try:
             if not self._initialized:
-                self._initialize_enhancer()
+                self._initialize_enhancer(user_id)
                 
             if not self.settings or not self.settings.get('enabled', False):
                 logger.debug("Image enhancement disabled, skipping experimental capture")
@@ -293,19 +307,20 @@ class ImageEnhancementManager:
             logger.error(f"Error in experimental capture enhancement: {e}")
             return None
 
-    def enhance_image(self, image_path: str) -> bool:
+    def enhance_image(self, image_path: str, user_id=None) -> bool:
         """
         Enhance an image file in place.
         
         Args:
             image_path: Path to the image file to enhance
+            user_id: User ID for settings lookup
             
         Returns:
             bool: True if enhancement was applied successfully, False otherwise
         """
         try:
             if not self._initialized:
-                self._initialize_enhancer()
+                self._initialize_enhancer(user_id)
                 
             # Check if enhancement is enabled
             if not self.settings or not self.settings.get('enabled', False):

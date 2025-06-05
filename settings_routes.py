@@ -1,7 +1,21 @@
+"""
+Settings management for RPi PhotoDoc OCR application.
+Hybrid approach: System settings in YAML files, user preferences in database.
+"""
+
 import yaml
 import os
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
-from flask_login import login_required
+import logging
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, jsonify
+from flask_login import login_required, current_user
+from user_settings import (
+    get_all_user_settings, 
+    set_user_settings_by_category, 
+    get_image_enhancement_settings,
+    reset_user_settings_to_defaults
+)
+
+logger = logging.getLogger(__name__)
 
 settings_bp = Blueprint('settings', __name__, url_prefix='/settings')
 
@@ -22,192 +36,216 @@ def get_prompts_path():
     return os.path.join(get_config_path(), PROMPTS_DIR_NAME)
 
 def load_prompt_from_file(prompt_key):
+    """Load prompt text from individual files"""
     filepath = os.path.join(get_prompts_path(), f"{prompt_key}.txt")
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             return f.read().strip()
     except FileNotFoundError:
-        current_app.logger.error(f"Prompt file not found: {filepath}. Using empty string.")
-        return "" # Or raise an error, or return a very generic default
+        logger.error(f"Prompt file not found: {filepath}. Using empty string.")
+        return ""
 
-def load_settings():
+def load_system_settings():
+    """Load system-wide settings from YAML file"""
     settings_path = get_config_path(SETTINGS_FILE_NAME)
     default_settings = {
         'llm_server_url': current_app.config.get('LLM_SERVER_URL', 'http://localhost:11434/api/generate'),
         'llm_model_name': 'llama3.1:8b',
         'ocr_mode': 'local',  # 'local' or 'remote'
         'ocr_server_url': 'http://localhost:8080/ocr',
-        'prompts': {key: load_prompt_from_file(key) for key in DEFAULT_PROMPT_KEYS},
-        'image_enhancement': {
-            'enabled': False,
-            'denoise_enabled': False,
-            'denoise_strength': 3,
-            'denoise_fast_mode': True,
-            'contrast_enabled': False,
-            'contrast_clip_limit': 1.5,
-            'contrast_preserve_tone': True,
-            'sharpen_enabled': False,
-            'sharpen_strength': 0.3,
-            'color_correction_enabled': False,
-            'color_white_balance': False,
-            'color_saturation_factor': 1.0,
-            'color_temperature_adjustment': 0.0,
-            'camera_optimal_settings': False,
-            'camera_exposure_time': 33000,
-            'camera_analog_gain': 1.0,
-            'camera_awb_mode': 'auto',
-            'camera_sharpness': 1.0,
-            # Experimental features - disabled by default
-            'experimental_hdr_enabled': False,
-            'experimental_hdr_exposure_times': [5000, 20000, 50000],
-            'experimental_hdr_gamma': 2.2,
-            'experimental_stacking_enabled': False,
-            'experimental_stacking_num_images': 5,
-            'experimental_stacking_alignment_threshold': 0.7
-        }
+        'prompts': {key: load_prompt_from_file(key) for key in DEFAULT_PROMPT_KEYS}
     }
+    
     try:
         with open(settings_path, 'r') as f:
             settings = yaml.safe_load(f)
-            if not settings: # File was empty or malformed
+            if not settings:
                 return default_settings
+            
             # Ensure all keys are present, falling back to defaults
             settings.setdefault('llm_server_url', default_settings['llm_server_url'])
             settings.setdefault('llm_model_name', default_settings['llm_model_name'])
             settings.setdefault('ocr_mode', default_settings['ocr_mode'])
             settings.setdefault('ocr_server_url', default_settings['ocr_server_url'])
-            settings.setdefault('image_enhancement', default_settings['image_enhancement'])
+            
             if 'prompts' not in settings or not isinstance(settings['prompts'], dict):
                 settings['prompts'] = {}
             for key in DEFAULT_PROMPT_KEYS:
-                 # If a prompt is missing from settings.yaml, load it from its .txt file
                 settings['prompts'].setdefault(key, load_prompt_from_file(key))
-            # Ensure all image enhancement settings are present
-            if 'image_enhancement' not in settings or not isinstance(settings['image_enhancement'], dict):
-                settings['image_enhancement'] = default_settings['image_enhancement']
-            else:
-                for key, value in default_settings['image_enhancement'].items():
-                    settings['image_enhancement'].setdefault(key, value)
+            
             return settings
+            
     except (FileNotFoundError, yaml.YAMLError):
+        logger.info("System settings file not found or invalid, using defaults")
         return default_settings
 
-def save_settings(settings_data):
-    # When saving settings, save LLM, OCR and image enhancement config to settings.yaml.
-    # Prompts are managed as individual files.
-    config_to_save = {
-        'llm_server_url': settings_data.get('llm_server_url'),
-        'llm_model_name': settings_data.get('llm_model_name'),
-        'ocr_mode': settings_data.get('ocr_mode', 'local'),
-        'ocr_server_url': settings_data.get('ocr_server_url'),
-        'image_enhancement': settings_data.get('image_enhancement', {})
-    }
-    with open(get_config_path(SETTINGS_FILE_NAME), 'w') as f:
-        yaml.dump(config_to_save, f, indent=4, default_flow_style=False)
-    
-    # Save individual prompt files
-    prompts_path = get_prompts_path()
-    os.makedirs(prompts_path, exist_ok=True)
-    if 'prompts' in settings_data:
-        for key, content in settings_data['prompts'].items():
-            if key in DEFAULT_PROMPT_KEYS: # Only save known prompt keys
-                with open(os.path.join(prompts_path, f"{key}.txt"), 'w', encoding='utf-8') as f:
-                    f.write(content)
-
-    # Update app config immediately
-    if 'llm_server_url' in settings_data: current_app.config['LLM_SERVER_URL'] = settings_data['llm_server_url']
-    if 'llm_model_name' in settings_data: current_app.config['LLM_MODEL_NAME'] = settings_data['llm_model_name']
-    if 'ocr_mode' in settings_data: current_app.config['OCR_MODE'] = settings_data['ocr_mode']
-    if 'ocr_server_url' in settings_data: current_app.config['OCR_SERVER_URL'] = settings_data['ocr_server_url']
-    if 'prompts' in settings_data: current_app.config['PROMPTS'] = settings_data['prompts']
-    if 'image_enhancement' in settings_data: current_app.config['IMAGE_ENHANCEMENT'] = settings_data['image_enhancement']
-
-
-@settings_bp.route('/', methods=['GET', 'POST'])
-@login_required
-def manage_settings():
-    if request.method == 'POST':
-        current_settings = load_settings() # Load existing to preserve any other settings
-        current_settings['llm_server_url'] = request.form.get('llm_server_url', current_settings.get('llm_server_url'))
-        current_settings['llm_model_name'] = request.form.get('llm_model_name', current_settings.get('llm_model_name'))
-        current_settings['ocr_mode'] = request.form.get('ocr_mode', 'local')
-        current_settings['ocr_server_url'] = request.form.get('ocr_server_url', current_settings.get('ocr_server_url'))
+def save_system_settings(settings):
+    """Save system-wide settings to YAML file"""
+    try:
+        settings_path = get_config_path(SETTINGS_FILE_NAME)
+        os.makedirs(os.path.dirname(settings_path), exist_ok=True)
         
-        # Handle image enhancement settings
-        image_enhancement = current_settings.get('image_enhancement', {})
-        image_enhancement['enabled'] = 'enhancement_enabled' in request.form
-        image_enhancement['denoise_enabled'] = 'denoise_enabled' in request.form
-        image_enhancement['denoise_strength'] = int(request.form.get('denoise_strength', 5))
-        image_enhancement['denoise_fast_mode'] = 'denoise_fast_mode' in request.form
-        image_enhancement['contrast_enabled'] = 'contrast_enabled' in request.form
-        image_enhancement['contrast_clip_limit'] = float(request.form.get('contrast_clip_limit', 2.0))
-        image_enhancement['contrast_preserve_tone'] = 'contrast_preserve_tone' in request.form
-        image_enhancement['sharpen_enabled'] = 'sharpen_enabled' in request.form
-        image_enhancement['sharpen_strength'] = float(request.form.get('sharpen_strength', 0.8))
-        image_enhancement['color_correction_enabled'] = 'color_correction_enabled' in request.form
-        image_enhancement['color_white_balance'] = 'color_white_balance' in request.form
-        image_enhancement['color_saturation_factor'] = float(request.form.get('color_saturation_factor', 1.1))
-        image_enhancement['color_temperature_adjustment'] = float(request.form.get('color_temperature_adjustment', 0.0))
-        image_enhancement['camera_optimal_settings'] = 'camera_optimal_settings' in request.form
-        image_enhancement['camera_exposure_time'] = int(request.form.get('camera_exposure_time', 20000))
-        image_enhancement['camera_analog_gain'] = float(request.form.get('camera_analog_gain', 1.0))
-        image_enhancement['camera_awb_mode'] = request.form.get('camera_awb_mode', 'auto')
-        image_enhancement['camera_sharpness'] = float(request.form.get('camera_sharpness', 1.5))
-        # Experimental features
-        image_enhancement['experimental_hdr_enabled'] = 'experimental_hdr_enabled' in request.form
-        image_enhancement['experimental_hdr_gamma'] = float(request.form.get('experimental_hdr_gamma', 2.2))
-        image_enhancement['experimental_stacking_enabled'] = 'experimental_stacking_enabled' in request.form
-        image_enhancement['experimental_stacking_num_images'] = int(request.form.get('experimental_stacking_num_images', 5))
-        image_enhancement['experimental_stacking_alignment_threshold'] = float(request.form.get('experimental_stacking_alignment_threshold', 0.7))
-        # Parse exposure times from comma-separated values
-        exposure_times_str = request.form.get('experimental_hdr_exposure_times', '5000,20000,50000')
-        try:
-            image_enhancement['experimental_hdr_exposure_times'] = [int(x.strip()) for x in exposure_times_str.split(',')]
-        except ValueError:
-            image_enhancement['experimental_hdr_exposure_times'] = [5000, 20000, 50000]  # fallback
-        current_settings['image_enhancement'] = image_enhancement
+        # Separate prompts for file storage
+        prompts = settings.pop('prompts', {})
         
-        new_prompts = {}
-        for key in DEFAULT_PROMPT_KEYS:
-            new_prompts[key] = request.form.get(f'prompt_{key}', load_prompt_from_file(key)) # Fallback to file content if not in form
-        current_settings['prompts'] = new_prompts
-            
-        save_settings(current_settings)
+        # Save main settings to YAML
+        with open(settings_path, 'w') as f:
+            yaml.dump(settings, f, default_flow_style=False)
         
-        # Refresh image enhancement settings
-        try:
-            from image_enhancement import enhancement_manager
-            enhancement_manager.refresh_settings()
-        except ImportError:
-            pass  # Enhancement manager not available
+        # Save prompts to individual files
+        prompts_dir = get_prompts_path()
+        os.makedirs(prompts_dir, exist_ok=True)
         
-        flash('Settings and prompts updated successfully!', 'success')
-        return redirect(url_for('settings.manage_settings'))
-    
-    settings_data = load_settings()
-    # Ensure prompts are loaded for the template even if settings file is minimal
-    if not settings_data.get('prompts') or len(settings_data['prompts']) < len(DEFAULT_PROMPT_KEYS):
-        settings_data['prompts'] = {key: load_prompt_from_file(key) for key in DEFAULT_PROMPT_KEYS}
+        for key, text in prompts.items():
+            if key in DEFAULT_PROMPT_KEYS:
+                prompt_path = os.path.join(prompts_dir, f"{key}.txt")
+                with open(prompt_path, 'w', encoding='utf-8') as f:
+                    f.write(text)
+        
+        logger.info("System settings saved successfully")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error saving system settings: {e}")
+        return False
 
-    return render_template('settings.html', settings=settings_data, default_prompt_keys=DEFAULT_PROMPT_KEYS)
+# Legacy functions for compatibility
+def load_settings():
+    """Legacy function - now loads system settings only"""
+    return load_system_settings()
 
-def get_prompt(action_key):
-    # This function now directly loads from the specific file for the most up-to-date version.
-    # It bypasses settings.yaml for reading prompts, as settings.yaml no longer stores them.
-    return load_prompt_from_file(action_key)
+def get_prompt(prompt_key):
+    """Get prompt text by key"""
+    return load_prompt_from_file(prompt_key)
 
 def get_llm_model_name():
-    settings = load_settings() # This will load from settings.yaml
-    return settings.get('llm_model_name', 'llama3.1:8b')
+    """Get LLM model name from system settings"""
+    return load_system_settings().get('llm_model_name', 'llama3.1:8b')
 
 def get_ocr_mode():
-    settings = load_settings()
-    return settings.get('ocr_mode', 'local')
+    """Get OCR mode from system settings"""
+    return load_system_settings().get('ocr_mode', 'local')
 
 def get_ocr_server_url():
-    settings = load_settings()
-    return settings.get('ocr_server_url', 'http://localhost:8080/ocr')
+    """Get OCR server URL from system settings"""
+    return load_system_settings().get('ocr_server_url', 'http://localhost:8080/ocr')
 
 def get_image_enhancement_settings():
-    settings = load_settings()
-    return settings.get('image_enhancement', {})
+    """Get image enhancement settings for current user"""
+    if current_user.is_authenticated:
+        from user_settings import get_user_settings_by_category
+        return get_user_settings_by_category(current_user.id, 'image_enhancement')
+    else:
+        # Return disabled defaults for anonymous users
+        from user_settings import DEFAULT_USER_SETTINGS
+        return DEFAULT_USER_SETTINGS['image_enhancement']
+
+@settings_bp.route('/', methods=['GET'])
+@login_required
+def settings_page():
+    """Main settings page"""
+    system_settings = load_system_settings()
+    user_settings = get_all_user_settings(current_user.id)
+    
+    return render_template('settings.html', 
+                         system_settings=system_settings,
+                         user_settings=user_settings,
+                         default_prompt_keys=DEFAULT_PROMPT_KEYS)
+
+@settings_bp.route('/system', methods=['POST'])
+@login_required  # TODO: Add admin check
+def update_system_settings():
+    """Update system-wide settings (admin only)"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        current_settings = load_system_settings()
+        
+        # Update allowed fields
+        allowed_fields = ['llm_server_url', 'llm_model_name', 'ocr_mode', 'ocr_server_url']
+        for field in allowed_fields:
+            if field in data:
+                current_settings[field] = data[field]
+        
+        # Handle prompts separately
+        if 'prompts' in data:
+            current_settings['prompts'] = data['prompts']
+        
+        if save_system_settings(current_settings):
+            logger.info(f"System settings updated by user {current_user.id}")
+            return jsonify({'success': True, 'message': 'System settings updated successfully'})
+        else:
+            return jsonify({'error': 'Failed to save system settings'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error updating system settings: {e}")
+        return jsonify({'error': f'Error updating settings: {str(e)}'}), 500
+
+@settings_bp.route('/user', methods=['POST'])
+@login_required
+def update_user_settings():
+    """Update user-specific settings"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        category = data.get('category')
+        settings = data.get('settings')
+        
+        if not category or not settings:
+            return jsonify({'error': 'Category and settings are required'}), 400
+        
+        # Validate category
+        valid_categories = ['image_enhancement', 'ocr', 'ui']
+        if category not in valid_categories:
+            return jsonify({'error': f'Invalid category. Must be one of: {valid_categories}'}), 400
+        
+        if set_user_settings_by_category(current_user.id, category, settings):
+            logger.info(f"User settings updated for user {current_user.id}, category {category}")
+            return jsonify({'success': True, 'message': f'{category} settings updated successfully'})
+        else:
+            return jsonify({'error': 'Failed to save user settings'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error updating user settings: {e}")
+        return jsonify({'error': f'Error updating settings: {str(e)}'}), 500
+
+@settings_bp.route('/user/reset', methods=['POST'])
+@login_required
+def reset_user_settings():
+    """Reset user settings to defaults"""
+    try:
+        data = request.get_json()
+        category = data.get('category') if data else None
+        
+        if reset_user_settings_to_defaults(current_user.id, category):
+            category_text = category or 'all'
+            logger.info(f"User settings reset to defaults for user {current_user.id}, category {category_text}")
+            return jsonify({'success': True, 'message': f'{category_text} settings reset to defaults'})
+        else:
+            return jsonify({'error': 'Failed to reset user settings'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error resetting user settings: {e}")
+        return jsonify({'error': f'Error resetting settings: {str(e)}'}), 500
+
+@settings_bp.route('/user/<category>', methods=['GET'])
+@login_required
+def get_user_settings_api(category):
+    """Get user settings for a specific category via API"""
+    try:
+        from user_settings import get_user_settings_by_category
+        
+        valid_categories = ['image_enhancement', 'ocr', 'ui']
+        if category not in valid_categories:
+            return jsonify({'error': f'Invalid category. Must be one of: {valid_categories}'}), 400
+        
+        settings = get_user_settings_by_category(current_user.id, category)
+        return jsonify({'success': True, 'settings': settings})
+        
+    except Exception as e:
+        logger.error(f"Error getting user settings for category {category}: {e}")
+        return jsonify({'error': f'Error getting settings: {str(e)}'}), 500

@@ -138,13 +138,17 @@ dmypy.json
 
 # OCR Formatter Specific
 uploads/
-users.json
 config/settings.yaml
 config/ocr_server_config.yaml
-documents.json
-photos.json
+photodoc.db
+photodoc.db-journal
 # Individual prompt files in config/prompts/ are part of the repo by default.
-# If you add a mechanism for user-uploaded/custom prompts outside this structure, ignore them. 
+# If you add a mechanism for user-uploaded/custom prompts outside this structure, ignore them.
+
+# Legacy JSON files (replaced by SQLite database)
+users.json
+documents.json
+photos.json 
 
 ocr_logs/
 

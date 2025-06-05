@@ -8,6 +8,7 @@ from routes import main_bp # Changed to absolute import
 from settings_routes import settings_bp, load_settings as load_app_settings, get_config_path, PROMPTS_DIR_NAME, DEFAULT_PROMPT_KEYS, get_prompts_path # Changed to absolute import
 from datetime import datetime # Add this import
 from models import User, load_users, save_users # This is the primary import for models
+import database
 
 # Configure logging
 logging.basicConfig(
@@ -59,9 +60,10 @@ with app.app_context():
     # Prompts are loaded dynamically by get_prompt, but we can prime app.config if needed for some other use case, or remove this line.
     app.config['PROMPTS'] = current_settings.get('prompts', {}) 
 
-# Load users within app context
+# Initialize database and users within app context
 with app.app_context():
-    load_users() # Changed from load_all_users()
+    database.init_db()  # Initialize SQLite database
+    load_users() # Legacy function - now does nothing with SQLite
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -74,7 +76,9 @@ def load_user(user_id):
 
 app.register_blueprint(main_bp)
 app.register_blueprint(settings_bp) # Registered settings blueprint
-# Blueprint for settings will be added here later
+
+# Initialize database with Flask app
+database.init_app(app)
 
 # Initialize DocumentManager
 
