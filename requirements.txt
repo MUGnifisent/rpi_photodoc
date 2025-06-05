@@ -6,6 +6,5 @@ opencv-python-headless
 numpy
 requests
 python-dotenv
-Pillow
 PyYAML
 picamera2

@@ -190,16 +190,20 @@ class RPiCamera:
                 if self.portrait_mode:
                     logger.info("Applying software rotation for portrait mode...")
                     try:
-                        from PIL import Image
+                        import cv2
                         
-                        # Open the image
-                        with Image.open(filepath) as img:
-                            # Rotate 90 degrees clockwise for portrait mode
-                            rotated_img = img.rotate(90, expand=True)
+                        # Read the image
+                        img = cv2.imread(filepath)
+                        if img is None:
+                            logger.error(f"Failed to read image from {filepath}")
+                            return False
                             
-                            # Save the rotated image back to the same file
-                            rotated_img.save(filepath, quality=95, optimize=True)
-                            
+                        # Rotate 90 degrees clockwise for portrait mode
+                        rotated_img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+                        
+                        # Save the rotated image back to the same file
+                        cv2.imwrite(filepath, rotated_img, [cv2.IMWRITE_JPEG_QUALITY, 95])
+                        
                         logger.info(f"Successfully rotated image for portrait mode. New size after rotation.")
                         
                         # Verify the rotated file
@@ -207,7 +211,7 @@ class RPiCamera:
                         logger.info(f"Rotated image file size: {rotated_size} bytes")
                         
                     except ImportError:
-                        logger.error("PIL/Pillow not available for image rotation. Install with: pip install Pillow")
+                        logger.error("OpenCV not available for image rotation. Install with: pip install opencv-python")
                         return False
                     except Exception as e:
                         logger.error(f"Failed to rotate image: {e}")
