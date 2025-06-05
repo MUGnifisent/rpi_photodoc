@@ -1,9 +1,10 @@
 Flask
 Flask-Login
+Flask-CORS
 easyocr
 opencv-python-headless
 requests
 python-dotenv
 Pillow
 PyYAML
-picamera2 
+picamera2

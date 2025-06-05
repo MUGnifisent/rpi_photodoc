@@ -35,6 +35,8 @@ def load_settings():
     default_settings = {
         'llm_server_url': current_app.config.get('LLM_SERVER_URL', 'http://localhost:11434/api/generate'),
         'llm_model_name': 'llama3.1:8b',
+        'ocr_mode': 'local',  # 'local' or 'remote'
+        'ocr_server_url': 'http://localhost:8080/ocr',
         'prompts': {key: load_prompt_from_file(key) for key in DEFAULT_PROMPT_KEYS}
     }
     try:
@@ -45,6 +47,8 @@ def load_settings():
             # Ensure all keys are present, falling back to defaults
             settings.setdefault('llm_server_url', default_settings['llm_server_url'])
             settings.setdefault('llm_model_name', default_settings['llm_model_name'])
+            settings.setdefault('ocr_mode', default_settings['ocr_mode'])
+            settings.setdefault('ocr_server_url', default_settings['ocr_server_url'])
             if 'prompts' not in settings or not isinstance(settings['prompts'], dict):
                 settings['prompts'] = {}
             for key in DEFAULT_PROMPT_KEYS:
@@ -55,11 +59,13 @@ def load_settings():
         return default_settings
 
 def save_settings(settings_data):
-    # When saving settings, only save llm_server_url and llm_model_name to settings.yaml.
+    # When saving settings, save LLM and OCR config to settings.yaml.
     # Prompts are managed as individual files.
     config_to_save = {
         'llm_server_url': settings_data.get('llm_server_url'),
-        'llm_model_name': settings_data.get('llm_model_name')
+        'llm_model_name': settings_data.get('llm_model_name'),
+        'ocr_mode': settings_data.get('ocr_mode', 'local'),
+        'ocr_server_url': settings_data.get('ocr_server_url')
     }
     with open(get_config_path(SETTINGS_FILE_NAME), 'w') as f:
         yaml.dump(config_to_save, f, indent=4, default_flow_style=False)
@@ -76,6 +82,8 @@ def save_settings(settings_data):
     # Update app config immediately
     if 'llm_server_url' in settings_data: current_app.config['LLM_SERVER_URL'] = settings_data['llm_server_url']
     if 'llm_model_name' in settings_data: current_app.config['LLM_MODEL_NAME'] = settings_data['llm_model_name']
+    if 'ocr_mode' in settings_data: current_app.config['OCR_MODE'] = settings_data['ocr_mode']
+    if 'ocr_server_url' in settings_data: current_app.config['OCR_SERVER_URL'] = settings_data['ocr_server_url']
     if 'prompts' in settings_data: current_app.config['PROMPTS'] = settings_data['prompts']
 
 
@@ -86,6 +94,8 @@ def manage_settings():
         current_settings = load_settings() # Load existing to preserve any other settings
         current_settings['llm_server_url'] = request.form.get('llm_server_url', current_settings.get('llm_server_url'))
         current_settings['llm_model_name'] = request.form.get('llm_model_name', current_settings.get('llm_model_name'))
+        current_settings['ocr_mode'] = request.form.get('ocr_mode', 'local')
+        current_settings['ocr_server_url'] = request.form.get('ocr_server_url', current_settings.get('ocr_server_url'))
         
         new_prompts = {}
         for key in DEFAULT_PROMPT_KEYS:
@@ -110,4 +120,12 @@ def get_prompt(action_key):
 
 def get_llm_model_name():
     settings = load_settings() # This will load from settings.yaml
-    return settings.get('llm_model_name', 'llama3.1:8b') 
+    return settings.get('llm_model_name', 'llama3.1:8b')
+
+def get_ocr_mode():
+    settings = load_settings()
+    return settings.get('ocr_mode', 'local')
+
+def get_ocr_server_url():
+    settings = load_settings()
+    return settings.get('ocr_server_url', 'http://localhost:8080/ocr')

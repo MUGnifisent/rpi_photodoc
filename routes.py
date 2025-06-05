@@ -10,7 +10,7 @@ from werkzeug.urls import url_parse  # Add this import for URL validation
 import easyocr
 # import cv2 # cv2 is imported in app.py if needed for specific image operations there, not directly in routes.
 from models import User
-from settings_routes import get_prompt, get_llm_model_name, DEFAULT_PROMPT_KEYS
+from settings_routes import get_prompt, get_llm_model_name, get_ocr_mode, get_ocr_server_url, DEFAULT_PROMPT_KEYS
 from photo_manager import (
     create_photo,
     load_all_photos_for_user,
@@ -45,18 +45,53 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
-def perform_ocr(filepath):
+def perform_ocr_local(filepath):
+    """Perform OCR using local EasyOCR"""
     if not reader:
-        # To prevent NameError if easyocr fails to load
         logger.error("EasyOCR reader not initialized. OCR cannot be performed.")
         raise Exception("EasyOCR reader not initialized.")
     try:
-        # result = reader.readtext(filepath, detail=0, paragraph=True) # old
-        result = reader.readtext(filepath, detail=0, paragraph=True, workers=0) # Added workers=0 based on potential thread safety issues with EasyOCR + Flask
+        result = reader.readtext(filepath, detail=0, paragraph=True, workers=0)
         return "\n".join(result)
     except Exception as e:
-        logger.error(f"OCR processing failed for {filepath}: {e}")
+        logger.error(f"Local OCR processing failed for {filepath}: {e}")
         raise
+
+def perform_ocr_remote(filepath):
+    """Perform OCR using remote OCR server"""
+    ocr_server_url = get_ocr_server_url()
+    
+    try:
+        with open(filepath, 'rb') as f:
+            files = {'image': (os.path.basename(filepath), f, 'image/jpeg')}
+            response = requests.post(ocr_server_url, files=files, timeout=60)
+            response.raise_for_status()
+            
+            result = response.json()
+            if result.get('success'):
+                return result.get('text', '')
+            else:
+                error_msg = result.get('error', 'Unknown error from OCR server')
+                logger.error(f"Remote OCR server error: {error_msg}")
+                raise Exception(f"OCR Server Error: {error_msg}")
+                
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to connect to OCR server at {ocr_server_url}: {e}")
+        raise Exception(f"Failed to connect to OCR server: {e}")
+    except Exception as e:
+        logger.error(f"Remote OCR processing failed for {filepath}: {e}")
+        raise
+
+def perform_ocr(filepath):
+    """Perform OCR using either local or remote method based on settings"""
+    ocr_mode = get_ocr_mode()
+    
+    if ocr_mode == 'remote':
+        logger.info(f"Using remote OCR for {filepath}")
+        return perform_ocr_remote(filepath)
+    else:
+        logger.info(f"Using local OCR for {filepath}")
+        return perform_ocr_local(filepath)
 
 def call_llm(prompt_text_key, text_to_process, custom_prompt_text=None):
     llm_url = current_app.config.get('LLM_SERVER_URL')
@@ -289,7 +324,8 @@ def capture_rpi_photo():
             return jsonify({'success': False, 'error': f'Captured image file too small: {file_size} bytes'}), 500
 
         # Step 2: Perform OCR
-        logger.info(f"Step 2: Starting OCR on {filepath}")
+        ocr_mode = get_ocr_mode()
+        logger.info(f"Step 2: Starting OCR on {filepath} using {ocr_mode} mode")
         original_ocr_text = None
         ai_cleaned_text = "Error during processing or no text found."
 
@@ -408,7 +444,8 @@ def process_upload():
         ai_cleaned_text = "Error during processing or no text found." # Default
 
         try:
-            logger.info(f"Performing OCR on {filepath}")
+            ocr_mode = get_ocr_mode()
+            logger.info(f"Performing OCR on {filepath} using {ocr_mode} mode")
             original_ocr_text = perform_ocr(filepath) # This can raise an exception
             logger.info(f"OCR for {filepath}. Length: {len(original_ocr_text if original_ocr_text else [])}")
 

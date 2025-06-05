@@ -46,6 +46,8 @@ with app.app_context():
     current_settings = load_app_settings() # Loads from yaml and prompt files
     app.config['LLM_SERVER_URL'] = current_settings.get('llm_server_url', os.environ.get('LLM_SERVER_URL', 'http://localhost:11434/api/generate'))
     app.config['LLM_MODEL_NAME'] = current_settings.get('llm_model_name', 'llama3.1:8b')
+    app.config['OCR_MODE'] = current_settings.get('ocr_mode', 'local')
+    app.config['OCR_SERVER_URL'] = current_settings.get('ocr_server_url', 'http://localhost:8080/ocr')
     # Prompts are loaded dynamically by get_prompt, but we can prime app.config if needed for some other use case, or remove this line.
     app.config['PROMPTS'] = current_settings.get('prompts', {}) 
 
@@ -75,4 +77,4 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0') 
+    app.run(debug=True, host='0.0.0.0')

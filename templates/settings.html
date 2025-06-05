@@ -17,6 +17,22 @@
         font-weight: bold;
         color: #e0e0e0; /* Ensure labels are visible */
     }
+    .ocr-server-settings {
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: #1a1a1a;
+        border-radius: 6px;
+        border: 1px solid #2c2c2c;
+        display: none;
+    }
+    .ocr-server-settings.visible {
+        display: block;
+    }
+    .ocr-mode-info {
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        color: #bbb;
+    }
 </style>
 {% endblock %}
 
@@ -28,7 +44,7 @@
     <div class="container settings-container">
         <div class="box">
             <h1 class="title is-3 has-text-centered">Application Settings</h1>
-            <p class="subtitle is-6 has-text-centered has-text-grey-light mb-5">Configure LLM connection and default AI prompts.</p>
+            <p class="subtitle is-6 has-text-centered has-text-grey-light mb-5">Configure LLM connection, OCR method, and default AI prompts.</p>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
@@ -56,6 +72,37 @@
                     <div class="control has-icons-left">
                         <input class="input" type="text" id="llm_model_name" name="llm_model_name" value="{{ settings.llm_model_name }}" placeholder="e.g. llama3.1:8b" required>
                          <span class="icon is-small is-left"><i class="fas fa-brain"></i></span>
+                    </div>
+                </div>
+                
+                <hr>
+                <h2 class="title is-5 mt-5">OCR Configuration</h2>
+                <div class="field">
+                    <label class="label">OCR Mode</label>
+                    <div class="control">
+                        <label class="radio">
+                            <input type="radio" name="ocr_mode" value="local" id="ocr_mode_local" {% if settings.ocr_mode == 'local' %}checked{% endif %}>
+                            Local OCR (EasyOCR)
+                        </label>
+                        <div class="ocr-mode-info">Process images locally using EasyOCR. Requires no additional setup but uses local processing power.</div>
+                    </div>
+                    <div class="control mt-3">
+                        <label class="radio">
+                            <input type="radio" name="ocr_mode" value="remote" id="ocr_mode_remote" {% if settings.ocr_mode == 'remote' %}checked{% endif %}>
+                            Remote OCR Server
+                        </label>
+                        <div class="ocr-mode-info">Send images to a remote OCR server for processing. Useful for offloading processing or centralizing OCR.</div>
+                    </div>
+                </div>
+
+                <div class="ocr-server-settings" id="ocr-server-settings">
+                    <div class="field">
+                        <label class="label" for="ocr_server_url">OCR Server URL</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="url" id="ocr_server_url" name="ocr_server_url" value="{{ settings.ocr_server_url }}" placeholder="e.g. http://192.168.1.100:8080/ocr">
+                            <span class="icon is-small is-left"><i class="fas fa-server"></i></span>
+                        </div>
+                        <p class="help">The URL endpoint where images will be sent for OCR processing.</p>
                     </div>
                 </div>
                 
@@ -89,8 +136,27 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Navbar burger and notification dismissal are handled in base.html
-    // No page-specific JS needed here for now beyond what base.html provides.
+    // Handle OCR mode switching
+    const ocrModeLocal = document.getElementById('ocr_mode_local');
+    const ocrModeRemote = document.getElementById('ocr_mode_remote');
+    const ocrServerSettings = document.getElementById('ocr-server-settings');
+    
+    function updateOcrSettings() {
+        if (ocrModeRemote.checked) {
+            ocrServerSettings.classList.add('visible');
+            document.getElementById('ocr_server_url').required = true;
+        } else {
+            ocrServerSettings.classList.remove('visible');
+            document.getElementById('ocr_server_url').required = false;
+        }
+    }
+    
+    // Set initial state
+    updateOcrSettings();
+    
+    // Add event listeners
+    ocrModeLocal.addEventListener('change', updateOcrSettings);
+    ocrModeRemote.addEventListener('change', updateOcrSettings);
 });
 </script>
-{% endblock %} 
+{% endblock %}
