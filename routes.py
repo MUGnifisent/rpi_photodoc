@@ -34,6 +34,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Debug camera import
+logger.info("=== Routes module initializing ===")
+logger.info(f"Camera instance imported: {type(rpi_camera_instance)}")
+logger.info(f"Camera available at import: {rpi_camera_instance.is_available()}")
+
 main_bp = Blueprint('main', __name__)
 
 try:
@@ -235,21 +240,34 @@ def logout():
 @main_bp.route('/camera_status', methods=['GET'])
 @login_required
 def camera_status():
-    logger.info("Camera status endpoint called")
+    logger.info("=== Camera status endpoint called ===")
     try:
         logger.info("Checking camera availability...")
+        
+        # Add detailed debug info
+        logger.info(f"Camera instance type: {type(rpi_camera_instance)}")
+        logger.info(f"Camera _is_initialized: {getattr(rpi_camera_instance, '_is_initialized', 'Not set')}")
+        logger.info(f"Camera _camera object: {getattr(rpi_camera_instance, '_camera', 'Not set')}")
+        
         available = rpi_camera_instance.is_available()
         logger.info(f"Camera available: {available}")
+        
         if available:
             streaming = rpi_camera_instance._is_streaming
             logger.info(f"Camera streaming: {streaming}")
-            return jsonify({'available': True, 'streaming': streaming})
+            response_data = {'available': True, 'streaming': streaming}
+            logger.info(f"Returning positive response: {response_data}")
+            return jsonify(response_data)
         else:
             logger.info("Camera not available, returning error response")
-            return jsonify({'available': False, 'message': 'RPi Camera not detected or failed to initialize.'})
+            response_data = {'available': False, 'message': 'RPi Camera not detected or failed to initialize.'}
+            logger.info(f"Returning negative response: {response_data}")
+            return jsonify(response_data)
     except Exception as e:
-        logger.error(f"Error in camera_status: {e}")
-        return jsonify({'available': False, 'message': f'Camera status error: {e}'}), 500
+        logger.error(f"Error in camera_status: {e}", exc_info=True)
+        response_data = {'available': False, 'message': f'Camera status error: {e}'}
+        logger.error(f"Returning error response: {response_data}")
+        return jsonify(response_data), 500
 
 @main_bp.route('/start_camera_stream', methods=['POST'])
 @login_required
@@ -485,6 +503,8 @@ def capture_rpi_photo():
 def upload_page():
     # Pass camera availability to the template
     camera_available = rpi_camera_instance.is_available()
+    logger.info(f"Upload page accessed by user {current_user.id}")
+    logger.info(f"Camera available for template: {camera_available}")
     return render_template('upload.html', camera_available=camera_available)
 
 @main_bp.route('/process_upload', methods=['POST'])
@@ -895,3 +915,26 @@ def camera_set_autofocus():
 def camera_trigger_autofocus():
     success = rpi_camera_instance.trigger_autofocus()
     return jsonify({'success': success})
+
+# Debug endpoint - test camera without authentication
+@main_bp.route('/debug/camera_test')
+def debug_camera_test():
+    try:
+        logger.info("=== DEBUG: Camera test endpoint called ===")
+        logger.info(f"Camera instance: {rpi_camera_instance}")
+        logger.info(f"Camera type: {type(rpi_camera_instance)}")
+        logger.info(f"Camera initialized: {getattr(rpi_camera_instance, '_is_initialized', 'Unknown')}")
+        logger.info(f"Camera object: {getattr(rpi_camera_instance, '_camera', 'Unknown')}")
+        
+        available = rpi_camera_instance.is_available()
+        logger.info(f"Camera available: {available}")
+        
+        return jsonify({
+            'camera_available': available,
+            'camera_initialized': getattr(rpi_camera_instance, '_is_initialized', False),
+            'camera_object_exists': getattr(rpi_camera_instance, '_camera', None) is not None,
+            'streaming': getattr(rpi_camera_instance, '_is_streaming', False)
+        })
+    except Exception as e:
+        logger.error(f"Debug camera test error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
