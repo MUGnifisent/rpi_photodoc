@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("Upload.js DOMContentLoaded event fired");
     const fileInput = document.getElementById('file-upload-input');
     const fileNameDisplay = document.getElementById('file-name-display');
     const fileSelectButton = document.getElementById('file-select-button');
@@ -67,7 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const cameraSection = document.getElementById('rpi-camera-section');
+    console.log("Camera section found:", !!cameraSection);
     if (cameraSection) {
+        console.log("Initializing camera section...");
+        console.log("API URLs available:", window.apiUrls);
         const cameraFeedImg = document.getElementById('camera-feed-img');
         const cameraFeedContainer = document.getElementById('camera-feed-container');
         const cameraLoadingOverlay = document.getElementById('camera-loading-overlay');
