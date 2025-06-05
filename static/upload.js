@@ -29,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const uploadForm = document.getElementById('upload-form');
-    const uploadSubmitButton = document.getElementById('upload-submit-button');
     const uploadFormErrorPlaceholder = document.getElementById('upload-form-error-placeholder');
 
     if (uploadForm && uploadSubmitButton) {
