@@ -8,6 +8,7 @@ import os
 import logging
 import cv2
 import numpy as np
+import yaml
 from typing import Optional
 from settings_routes import get_image_enhancement_settings
 from rpi_cam_enchance import (
@@ -23,6 +24,68 @@ from rpi_cam_enchance import (
 
 logger = logging.getLogger(__name__)
 
+def ensure_ocr_server_config():
+    """
+    Ensure the OCR server config file exists with default values.
+    Creates the file if it doesn't exist.
+    """
+    try:
+        from flask import has_app_context, current_app
+        if not has_app_context():
+            logger.warning("No Flask app context available, skipping OCR config creation")
+            return
+            
+        config_dir = current_app.config.get('CONFIG_DIR', 'config')
+        config_path = os.path.join(config_dir, 'ocr_server_config.yaml')
+        
+        # Check if file already exists
+        if os.path.exists(config_path):
+            logger.debug(f"OCR server config already exists: {config_path}")
+            return
+            
+        # Create config directory if it doesn't exist
+        os.makedirs(config_dir, exist_ok=True)
+        
+        # Default OCR server configuration
+        default_config = {
+            'server': {
+                'host': '0.0.0.0',
+                'port': 8080,
+                'debug': False
+            },
+            'ocr': {
+                'languages': ['uk', 'en'],
+                'detail': 0,
+                'paragraph': True,
+                'workers': 0
+            },
+            'upload': {
+                'max_file_size': 16777216,  # 16MB
+                'allowed_extensions': ['png', 'jpg', 'jpeg', 'webp', 'tiff', 'bmp'],
+                'temp_cleanup': True
+            },
+            'cors': {
+                'enabled': True,
+                'origins': '*'
+            },
+            'logging': {
+                'level': 'INFO',
+                'save_requests': False,
+                'request_log_dir': './ocr_logs'
+            }
+        }
+        
+        # Write the default config file
+        with open(config_path, 'w', encoding='utf-8') as f:
+            f.write("# OCR Server Configuration\n")
+            f.write("# All settings are optional - the server will use sensible defaults\n\n")
+            yaml.dump(default_config, f, default_flow_style=False, sort_keys=False, indent=2)
+            
+        logger.info(f"Created default OCR server config: {config_path}")
+        
+    except Exception as e:
+        logger.error(f"Failed to create OCR server config: {e}")
+
 class ImageEnhancementManager:
     """
     Manages image enhancement for the OCR system.
@@ -36,6 +99,8 @@ class ImageEnhancementManager:
         self.enhancer = None
         self.settings = None
         self._initialized = False
+        # Ensure OCR server config exists
+        ensure_ocr_server_config()
     
     def _initialize_enhancer(self):
         """Initialize the image enhancer based on current settings"""
@@ -265,6 +330,25 @@ class ImageEnhancementManager:
             
             # Apply enhancements
             enhanced_image = self.enhancer.enhance_image(image)
+            
+            # Safety check: Ensure enhanced image is valid
+            if enhanced_image is None:
+                logger.error("Enhancement returned None, keeping original image")
+                return True
+            
+            # Check if image went completely black (common enhancement failure)
+            mean_brightness = np.mean(enhanced_image)
+            if mean_brightness < 5:  # Very dark image, likely corrupted
+                logger.warning(f"Enhanced image too dark (mean brightness: {mean_brightness:.2f}), keeping original")
+                return True
+            
+            # Check for unusual color artifacts (red/blue spots)
+            if len(enhanced_image.shape) == 3:  # Color image
+                b_mean, g_mean, r_mean = np.mean(enhanced_image, axis=(0,1))
+                color_ratio = max(r_mean, b_mean) / max(g_mean, 1)  # Avoid division by zero
+                if color_ratio > 3:  # Excessive red or blue artifacts
+                    logger.warning(f"Enhanced image has color artifacts (ratio: {color_ratio:.2f}), keeping original")
+                    return True
             
             # Save enhanced image back to the same path
             success = cv2.imwrite(image_path, enhanced_image)

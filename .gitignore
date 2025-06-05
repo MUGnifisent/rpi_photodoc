@@ -140,6 +140,7 @@ dmypy.json
 uploads/
 users.json
 config/settings.yaml
+config/ocr_server_config.yaml
 documents.json
 photos.json
 # Individual prompt files in config/prompts/ are part of the repo by default.
