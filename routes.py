@@ -330,9 +330,24 @@ def capture_rpi_photo():
         except Exception as e:
             logger.warning(f"Step 0.5 WARNING: Camera settings error: {e}, continuing with default settings")
         
-        # Step 1: Capture image
-        logger.info(f"Step 1: Attempting to capture image to {filepath}")
-        capture_success = rpi_camera_instance.capture_image(filepath)
+        # Step 1: Check for experimental enhancers first
+        logger.info(f"Step 1: Checking for experimental capture enhancers")
+        experimental_result = None
+        try:
+            experimental_result = enhancement_manager.apply_experimental_capture(rpi_camera_instance._camera, filepath)
+            if experimental_result:
+                logger.info(f"Step 1 SUCCESS: Experimental enhancement captured to {experimental_result}")
+                # Skip normal capture since experimental enhancer handled it
+                capture_success = True
+            else:
+                logger.info(f"Step 1: No experimental enhancers enabled, proceeding with normal capture")
+        except Exception as e:
+            logger.warning(f"Step 1 WARNING: Experimental capture error: {e}, falling back to normal capture")
+        
+        # Step 1 (continued): Normal capture if experimental didn't handle it
+        if not experimental_result:
+            logger.info(f"Step 1: Attempting normal capture to {filepath}")
+            capture_success = rpi_camera_instance.capture_image(filepath)
         
         if not capture_success:
             logger.error(f"Step 1 FAILED: Camera capture returned False")
@@ -350,16 +365,19 @@ def capture_rpi_photo():
             logger.error(f"Step 1 FAILED: Image file too small: {file_size} bytes")
             return jsonify({'success': False, 'error': f'Captured image file too small: {file_size} bytes'}), 500
 
-        # Step 1.5: Apply image enhancement if enabled
-        logger.info(f"Step 1.5: Applying image enhancement")
-        try:
-            enhancement_success = enhancement_manager.enhance_image(filepath)
-            if enhancement_success:
-                logger.info(f"Step 1.5 SUCCESS: Image enhancement completed")
-            else:
-                logger.warning(f"Step 1.5 WARNING: Image enhancement failed, continuing with original image")
-        except Exception as e:
-            logger.error(f"Step 1.5 WARNING: Image enhancement error: {e}, continuing with original image")
+        # Step 1.5: Apply image enhancement if enabled (skip if experimental was used)
+        if experimental_result:
+            logger.info(f"Step 1.5: Skipping standard enhancement (experimental enhancement already applied)")
+        else:
+            logger.info(f"Step 1.5: Applying standard image enhancement")
+            try:
+                enhancement_success = enhancement_manager.enhance_image(filepath)
+                if enhancement_success:
+                    logger.info(f"Step 1.5 SUCCESS: Image enhancement completed")
+                else:
+                    logger.warning(f"Step 1.5 WARNING: Image enhancement failed, continuing with original image")
+            except Exception as e:
+                logger.error(f"Step 1.5 WARNING: Image enhancement error: {e}, continuing with original image")
 
         # Step 2: Perform OCR
         ocr_mode = get_ocr_mode()

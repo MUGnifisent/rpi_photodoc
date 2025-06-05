@@ -314,6 +314,83 @@
                             </div>
                         </div>
                         
+                        <hr>
+                        
+                        <!-- Experimental Features -->
+                        <h3 class="title is-6 has-text-warning">
+                            <span class="icon-text">
+                                <span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
+                                <span>Experimental Features</span>
+                            </span>
+                        </h3>
+                        <div class="notification is-warning is-light">
+                            <p class="is-size-7"><strong>Warning:</strong> These features are experimental and may cause longer processing times or temporary camera conflicts. Use with caution.</p>
+                        </div>
+                        
+                        <!-- HDR Enhancement -->
+                        <div class="field">
+                            <div class="control">
+                                <label class="checkbox">
+                                    <input type="checkbox" name="experimental_hdr_enabled" {% if settings.image_enhancement.experimental_hdr_enabled %}checked{% endif %}>
+                                    Enable HDR (High Dynamic Range) Capture
+                                </label>
+                            </div>
+                            <p class="help">Captures multiple exposures and combines them for better detail in shadows and highlights. Replaces standard capture when enabled.</p>
+                        </div>
+                        
+                        <div class="columns">
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">HDR Exposure Times (μs)</label>
+                                    <div class="control">
+                                        <input class="input" type="text" name="experimental_hdr_exposure_times" value="{{ settings.image_enhancement.experimental_hdr_exposure_times | join(',') }}" placeholder="5000,20000,50000">
+                                    </div>
+                                    <p class="help">Comma-separated exposure times in microseconds (low, medium, high)</p>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">HDR Gamma (1.0-3.0)</label>
+                                    <div class="control">
+                                        <input class="input" type="number" name="experimental_hdr_gamma" value="{{ settings.image_enhancement.experimental_hdr_gamma }}" min="1.0" max="3.0" step="0.1">
+                                    </div>
+                                    <p class="help">Controls tone mapping for HDR processing</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Image Stacking -->
+                        <div class="field">
+                            <div class="control">
+                                <label class="checkbox">
+                                    <input type="checkbox" name="experimental_stacking_enabled" {% if settings.image_enhancement.experimental_stacking_enabled %}checked{% endif %}>
+                                    Enable Image Stacking for Noise Reduction
+                                </label>
+                            </div>
+                            <p class="help">Captures multiple images and aligns/averages them to reduce noise. Cannot be used with HDR.</p>
+                        </div>
+                        
+                        <div class="columns">
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Number of Images (3-10)</label>
+                                    <div class="control">
+                                        <input class="input" type="number" name="experimental_stacking_num_images" value="{{ settings.image_enhancement.experimental_stacking_num_images }}" min="3" max="10">
+                                    </div>
+                                    <p class="help">More images = better noise reduction but longer processing time</p>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Alignment Threshold (0.1-1.0)</label>
+                                    <div class="control">
+                                        <input class="input" type="number" name="experimental_stacking_alignment_threshold" value="{{ settings.image_enhancement.experimental_stacking_alignment_threshold }}" min="0.1" max="1.0" step="0.1">
+                                    </div>
+                                    <p class="help">Quality threshold for image alignment (higher = stricter)</p>
+                                </div>
+                            </div>
+                        </div>
+                        
                     </div>
                 </div>
                 
@@ -386,6 +463,45 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add event listener for enhancement toggle
     enhancementEnabled.addEventListener('change', updateEnhancementSettings);
+    
+    // Handle experimental features mutual exclusion
+    const hdrEnabled = document.querySelector('input[name="experimental_hdr_enabled"]');
+    const stackingEnabled = document.querySelector('input[name="experimental_stacking_enabled"]');
+    
+    function updateExperimentalFeatures() {
+        // If HDR is enabled, disable stacking
+        if (hdrEnabled && hdrEnabled.checked) {
+            if (stackingEnabled) {
+                stackingEnabled.checked = false;
+                stackingEnabled.disabled = true;
+            }
+        } else if (hdrEnabled) {
+            if (stackingEnabled) {
+                stackingEnabled.disabled = false;
+            }
+        }
+        
+        // If stacking is enabled, disable HDR
+        if (stackingEnabled && stackingEnabled.checked) {
+            if (hdrEnabled) {
+                hdrEnabled.checked = false;
+                hdrEnabled.disabled = true;
+            }
+        } else if (stackingEnabled) {
+            if (hdrEnabled) {
+                hdrEnabled.disabled = false;
+            }
+        }
+    }
+    
+    // Set initial state for experimental features
+    if (hdrEnabled && stackingEnabled) {
+        updateExperimentalFeatures();
+        
+        // Add event listeners for mutual exclusion
+        hdrEnabled.addEventListener('change', updateExperimentalFeatures);
+        stackingEnabled.addEventListener('change', updateExperimentalFeatures);
+    }
     
     // Update radio button styling on change
     function updateRadioStyles() {

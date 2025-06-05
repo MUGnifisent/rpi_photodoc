@@ -56,7 +56,14 @@ def load_settings():
             'camera_exposure_time': 20000,
             'camera_analog_gain': 1.0,
             'camera_awb_mode': 'auto',
-            'camera_sharpness': 1.5
+            'camera_sharpness': 1.5,
+            # Experimental features - disabled by default
+            'experimental_hdr_enabled': False,
+            'experimental_hdr_exposure_times': [5000, 20000, 50000],
+            'experimental_hdr_gamma': 2.2,
+            'experimental_stacking_enabled': False,
+            'experimental_stacking_num_images': 5,
+            'experimental_stacking_alignment_threshold': 0.7
         }
     }
     try:
@@ -146,6 +153,18 @@ def manage_settings():
         image_enhancement['camera_analog_gain'] = float(request.form.get('camera_analog_gain', 1.0))
         image_enhancement['camera_awb_mode'] = request.form.get('camera_awb_mode', 'auto')
         image_enhancement['camera_sharpness'] = float(request.form.get('camera_sharpness', 1.5))
+        # Experimental features
+        image_enhancement['experimental_hdr_enabled'] = 'experimental_hdr_enabled' in request.form
+        image_enhancement['experimental_hdr_gamma'] = float(request.form.get('experimental_hdr_gamma', 2.2))
+        image_enhancement['experimental_stacking_enabled'] = 'experimental_stacking_enabled' in request.form
+        image_enhancement['experimental_stacking_num_images'] = int(request.form.get('experimental_stacking_num_images', 5))
+        image_enhancement['experimental_stacking_alignment_threshold'] = float(request.form.get('experimental_stacking_alignment_threshold', 0.7))
+        # Parse exposure times from comma-separated values
+        exposure_times_str = request.form.get('experimental_hdr_exposure_times', '5000,20000,50000')
+        try:
+            image_enhancement['experimental_hdr_exposure_times'] = [int(x.strip()) for x in exposure_times_str.split(',')]
+        except ValueError:
+            image_enhancement['experimental_hdr_exposure_times'] = [5000, 20000, 50000]  # fallback
         current_settings['image_enhancement'] = image_enhancement
         
         new_prompts = {}
