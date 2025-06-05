@@ -37,7 +37,7 @@
                  <span class="icon"><i class="fas fa-images"></i></span>
                 <span>My Documents</span>
             </a>
-            <a class="navbar-item {% if request.endpoint == 'settings.manage_settings' %}is-active{% endif %}" href="{{ url_for('settings.manage_settings') }}">
+            <a class="navbar-item {% if request.endpoint == 'settings.settings_page' %}is-active{% endif %}" href="{{ url_for('settings.settings_page') }}">
                  <span class="icon"><i class="fas fa-cog"></i></span>
                 <span>Settings</span>
             </a>

@@ -16,7 +16,9 @@ DATABASE_NAME = 'photodoc.db'
 
 def get_db_path():
     """Get the path to the SQLite database file"""
-    return os.path.join(current_app.root_path, DATABASE_NAME)
+    config_dir = os.path.join(current_app.root_path, 'config')
+    os.makedirs(config_dir, exist_ok=True)
+    return os.path.join(config_dir, DATABASE_NAME)
 
 def get_db():
     """Get database connection for the current request"""

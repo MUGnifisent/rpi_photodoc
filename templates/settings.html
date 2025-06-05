@@ -6,388 +6,246 @@
 {% endblock %}
 
 {% block content %}
-<!-- The main navbar is inherited from base.html. No need to repeat it here. -->
-<!-- We just need to ensure the active state is correctly handled in base.html for this page -->
-
 <section class="section">
     <div class="container settings-container">
         <div class="box">
-            <h1 class="title is-3 has-text-centered">Application Settings</h1>
-            <p class="subtitle is-6 has-text-centered has-text-grey-light mb-5">Configure LLM connection, OCR method, and default AI prompts.</p>
+            <h1 class="title is-3 has-text-centered">Settings</h1>
+            <p class="subtitle is-6 has-text-centered has-text-grey-light mb-5">Configure your preferences and system settings.</p>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="notification is-{{ 'success' if category == 'success' else 'danger' }} is-light is-small mb-4">
-                            <button class="delete is-small"></button>
+                        <div class="notification is-{{ 'success' if category == 'success' else 'danger' }} is-light is-small mb-4" id="flash-message-{{ loop.index }}">
+                            <button class="delete is-small" onclick="this.parentElement.remove();"></button>
                             {{ message }}
                         </div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
 
-            <form method="POST" action="{{ url_for('settings.manage_settings') }}">
-                <h2 class="title is-5">LLM Configuration</h2>
-                <div class="field">
-                    <label class="label" for="llm_server_url">LLM Server URL</label>
-                    <div class="control has-icons-left">
-                        <input class="input" type="url" id="llm_server_url" name="llm_server_url" value="{{ settings.llm_server_url }}" placeholder="e.g. http://localhost:11434/api/generate" required>
-                        <span class="icon is-small is-left"><i class="fas fa-server"></i></span>
-                    </div>
-                </div>
+            <!-- Settings Tabs -->
+            <div class="tabs is-boxed">
+                <ul>
+                    <li class="is-active" data-tab="user-settings">
+                        <a>
+                            <span class="icon is-small"><i class="fas fa-user-cog"></i></span>
+                            <span>My Preferences</span>
+                        </a>
+                    </li>
+                    <li data-tab="system-settings">
+                        <a>
+                            <span class="icon is-small"><i class="fas fa-server"></i></span>
+                            <span>System Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
 
-                <div class="field">
-                    <label class="label" for="llm_model_name">LLM Model Name</label>
-                    <div class="control has-icons-left">
-                        <input class="input" type="text" id="llm_model_name" name="llm_model_name" value="{{ settings.llm_model_name }}" placeholder="e.g. llama3.1:8b" required>
-                         <span class="icon is-small is-left"><i class="fas fa-brain"></i></span>
-                    </div>
-                </div>
+            <!-- User Settings Tab -->
+            <div id="user-settings" class="tab-content">
+                <h2 class="title is-4">Your Preferences</h2>
                 
-                <hr>
-                <h2 class="title is-5 mt-5">OCR Configuration</h2>
-                <div class="field">
-                    <label class="label">OCR Mode</label>
-                    <div class="control">
-                        <label class="radio">
-                            <input type="radio" name="ocr_mode" value="local" id="ocr_mode_local" {% if settings.ocr_mode == 'local' %}checked{% endif %}>
-                            Local OCR (EasyOCR)
-                        </label>
-                        <div class="ocr-mode-info">Process images locally using EasyOCR. Requires no additional setup but uses local processing power.</div>
-                    </div>
-                    <div class="control mt-3">
-                        <label class="radio">
-                            <input type="radio" name="ocr_mode" value="remote" id="ocr_mode_remote" {% if settings.ocr_mode == 'remote' %}checked{% endif %}>
-                            Remote OCR Server
-                        </label>
-                        <div class="ocr-mode-info">Send images to a remote OCR server for processing. Useful for offloading processing or centralizing OCR.</div>
-                    </div>
-                </div>
-
-                <div class="ocr-server-settings" id="ocr-server-settings">
+                <!-- Image Enhancement Settings -->
+                <div class="box">
+                    <h3 class="title is-5">Image Enhancement</h3>
                     <div class="field">
-                        <label class="label" for="ocr_server_url">OCR Server URL</label>
-                        <div class="control has-icons-left">
-                            <input class="input" type="url" id="ocr_server_url" name="ocr_server_url" value="{{ settings.ocr_server_url }}" placeholder="e.g. http://192.168.1.100:8080/ocr">
-                            <span class="icon is-small is-left"><i class="fas fa-server"></i></span>
-                        </div>
-                        <p class="help">The URL endpoint where images will be sent for OCR processing.</p>
-                    </div>
-                </div>
-                
-                <hr>
-                <h2 class="title is-5 mt-5">Image Enhancement</h2>
-                <p class="is-size-7 has-text-grey-light mb-4">Configure image enhancement options to improve OCR accuracy. Enhancements are applied before sending images to OCR.</p>
-                
-                <div class="field">
-                    <div class="control">
                         <label class="checkbox">
-                            <input type="checkbox" name="enhancement_enabled" {% if settings.image_enhancement.enabled %}checked{% endif %}>
+                            <input type="checkbox" id="enhancement-enabled" {{ 'checked' if user_settings.image_enhancement.enabled else '' }}>
                             Enable Image Enhancement
                         </label>
                     </div>
-                    <p class="help">When enabled, images will be enhanced before OCR processing to improve text recognition accuracy.</p>
-                </div>
-
-                <div class="enhancement-settings" id="enhancement-settings" style="{% if not settings.image_enhancement.enabled %}display: none;{% endif %}">
-                    <div class="box mt-4" style="background-color: #1a1a1a; border: 1px solid #2c2c2c;">
-                        
-                        <!-- Camera Settings -->
-                        <h3 class="title is-6">Camera Settings</h3>
-                        <div class="field">
-                            <div class="control">
-                                <label class="checkbox">
-                                    <input type="checkbox" name="camera_optimal_settings" {% if settings.image_enhancement.camera_optimal_settings %}checked{% endif %}>
-                                    Apply Optimal Camera Settings
-                                </label>
-                            </div>
-                        </div>
-                        
+                    
+                    <div id="enhancement-options" style="{{ 'display: none;' if not user_settings.image_enhancement.enabled else '' }}">
                         <div class="columns">
                             <div class="column">
                                 <div class="field">
-                                    <label class="label">Exposure Time (μs)</label>
-                                    <div class="control">
-                                        <input class="input" type="number" name="camera_exposure_time" value="{{ settings.image_enhancement.camera_exposure_time }}" min="1000" max="100000" step="1000">
-                                    </div>
+                                    <label class="checkbox">
+                                        <input type="checkbox" id="denoise-enabled" {{ 'checked' if user_settings.image_enhancement.denoise_enabled else '' }}>
+                                        Noise Reduction
+                                    </label>
+                                </div>
+                                <div class="field">
+                                    <label class="checkbox">
+                                        <input type="checkbox" id="contrast-enabled" {{ 'checked' if user_settings.image_enhancement.contrast_enabled else '' }}>
+                                        Contrast Enhancement
+                                    </label>
+                                </div>
+                                <div class="field">
+                                    <label class="checkbox">
+                                        <input type="checkbox" id="sharpen-enabled" {{ 'checked' if user_settings.image_enhancement.sharpen_enabled else '' }}>
+                                        Sharpening
+                                    </label>
                                 </div>
                             </div>
                             <div class="column">
                                 <div class="field">
-                                    <label class="label">Analog Gain</label>
-                                    <div class="control">
-                                        <input class="input" type="number" name="camera_analog_gain" value="{{ settings.image_enhancement.camera_analog_gain }}" min="1.0" max="8.0" step="0.1">
-                                    </div>
+                                    <label class="checkbox">
+                                        <input type="checkbox" id="color-correction-enabled" {{ 'checked' if user_settings.image_enhancement.color_correction_enabled else '' }}>
+                                        Color Correction
+                                    </label>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div class="columns">
-                            <div class="column">
                                 <div class="field">
-                                    <label class="label">Auto White Balance</label>
-                                    <div class="control">
-                                        <div class="select">
-                                            <select name="camera_awb_mode">
-                                                <option value="auto" {% if settings.image_enhancement.camera_awb_mode == 'auto' %}selected{% endif %}>Auto</option>
-                                                <option value="tungsten" {% if settings.image_enhancement.camera_awb_mode == 'tungsten' %}selected{% endif %}>Tungsten</option>
-                                                <option value="daylight" {% if settings.image_enhancement.camera_awb_mode == 'daylight' %}selected{% endif %}>Daylight</option>
-                                                <option value="cloudy" {% if settings.image_enhancement.camera_awb_mode == 'cloudy' %}selected{% endif %}>Cloudy</option>
-                                                <option value="indoor" {% if settings.image_enhancement.camera_awb_mode == 'indoor' %}selected{% endif %}>Indoor</option>
-                                            </select>
-                                        </div>
-                                    </div>
+                                    <label class="checkbox">
+                                        <input type="checkbox" id="camera-optimal-settings" {{ 'checked' if user_settings.image_enhancement.camera_optimal_settings else '' }}>
+                                        Optimal Camera Settings
+                                    </label>
                                 </div>
-                            </div>
-                            <div class="column">
-                                <div class="field">
-                                    <label class="label">Camera Sharpness</label>
-                                    <div class="control">
-                                        <input class="input" type="number" name="camera_sharpness" value="{{ settings.image_enhancement.camera_sharpness }}" min="0.0" max="3.0" step="0.1">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <hr>
-                        
-                        <!-- Noise Reduction -->
-                        <h3 class="title is-6">Noise Reduction</h3>
-                        <div class="field">
-                            <div class="control">
-                                <label class="checkbox">
-                                    <input type="checkbox" name="denoise_enabled" {% if settings.image_enhancement.denoise_enabled %}checked{% endif %}>
-                                    Enable Noise Reduction
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <div class="columns">
-                            <div class="column">
-                                <div class="field">
-                                    <label class="label">Denoising Strength (1-10)</label>
-                                    <div class="control">
-                                        <input class="input" type="number" name="denoise_strength" value="{{ settings.image_enhancement.denoise_strength }}" min="1" max="10">
-                                    </div>
-                                    <p class="help">Lower values preserve more detail, higher values remove more noise</p>
-                                </div>
-                            </div>
-                            <div class="column">
-                                <div class="field">
-                                    <div class="control mt-5">
-                                        <label class="checkbox">
-                                            <input type="checkbox" name="denoise_fast_mode" {% if settings.image_enhancement.denoise_fast_mode %}checked{% endif %}>
-                                            Fast Mode (lower quality but faster)
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <hr>
-                        
-                        <!-- Contrast Enhancement -->
-                        <h3 class="title is-6">Contrast Enhancement</h3>
-                        <div class="field">
-                            <div class="control">
-                                <label class="checkbox">
-                                    <input type="checkbox" name="contrast_enabled" {% if settings.image_enhancement.contrast_enabled %}checked{% endif %}>
-                                    Enable Contrast Enhancement
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <div class="columns">
-                            <div class="column">
-                                <div class="field">
-                                    <label class="label">Clip Limit (1.0-5.0)</label>
-                                    <div class="control">
-                                        <input class="input" type="number" name="contrast_clip_limit" value="{{ settings.image_enhancement.contrast_clip_limit }}" min="1.0" max="5.0" step="0.1">
-                                    </div>
-                                    <p class="help">Controls how much contrast enhancement is applied</p>
-                                </div>
-                            </div>
-                            <div class="column">
-                                <div class="field">
-                                    <div class="control mt-5">
-                                        <label class="checkbox">
-                                            <input type="checkbox" name="contrast_preserve_tone" {% if settings.image_enhancement.contrast_preserve_tone %}checked{% endif %}>
-                                            Preserve Color Tone
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <hr>
-                        
-                        <!-- Sharpening -->
-                        <h3 class="title is-6">Sharpening</h3>
-                        <div class="field">
-                            <div class="control">
-                                <label class="checkbox">
-                                    <input type="checkbox" name="sharpen_enabled" {% if settings.image_enhancement.sharpen_enabled %}checked{% endif %}>
-                                    Enable Sharpening
-                                </label>
                             </div>
                         </div>
                         
                         <div class="field">
-                            <label class="label">Sharpening Strength (0.1-2.0)</label>
-                            <div class="control">
-                                <input class="input" type="number" name="sharpen_strength" value="{{ settings.image_enhancement.sharpen_strength }}" min="0.1" max="2.0" step="0.1">
-                            </div>
-                            <p class="help">Higher values increase edge sharpness</p>
+                            <button class="button is-link is-small" type="button" onclick="showAdvancedSettings()">
+                                <span class="icon"><i class="fas fa-cogs"></i></span>
+                                <span>Advanced Settings</span>
+                            </button>
                         </div>
-
-                        <hr>
-                        
-                        <!-- Color Correction -->
-                        <h3 class="title is-6">Color Correction</h3>
-                        <div class="field">
-                            <div class="control">
-                                <label class="checkbox">
-                                    <input type="checkbox" name="color_correction_enabled" {% if settings.image_enhancement.color_correction_enabled %}checked{% endif %}>
-                                    Enable Color Correction
-                                </label>
-                            </div>
+                    </div>
+                    
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <button class="button is-primary" type="button" onclick="saveUserSettings('image_enhancement')">
+                                <span class="icon"><i class="fas fa-save"></i></span>
+                                <span>Save Enhancement Settings</span>
+                            </button>
                         </div>
-                        
-                        <div class="field">
-                            <div class="control">
-                                <label class="checkbox">
-                                    <input type="checkbox" name="color_white_balance" {% if settings.image_enhancement.color_white_balance %}checked{% endif %}>
-                                    Auto White Balance Correction
-                                </label>
-                            </div>
+                        <div class="control">
+                            <button class="button is-light" type="button" onclick="resetUserSettings('image_enhancement')">
+                                <span class="icon"><i class="fas fa-undo"></i></span>
+                                <span>Reset to Defaults</span>
+                            </button>
                         </div>
-                        
-                        <div class="columns">
-                            <div class="column">
-                                <div class="field">
-                                    <label class="label">Saturation Factor (0.5-2.0)</label>
-                                    <div class="control">
-                                        <input class="input" type="number" name="color_saturation_factor" value="{{ settings.image_enhancement.color_saturation_factor }}" min="0.5" max="2.0" step="0.1">
-                                    </div>
-                                    <p class="help">1.0 = no change, higher = more saturated</p>
-                                </div>
-                            </div>
-                            <div class="column">
-                                <div class="field">
-                                    <label class="label">Temperature Adjustment (-1.0 to 1.0)</label>
-                                    <div class="control">
-                                        <input class="input" type="number" name="color_temperature_adjustment" value="{{ settings.image_enhancement.color_temperature_adjustment }}" min="-1.0" max="1.0" step="0.1">
-                                    </div>
-                                    <p class="help">Negative = cooler, positive = warmer</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <hr>
-                        
-                        <!-- Experimental Features -->
-                        <h3 class="title is-6 has-text-warning">
-                            <span class="icon-text">
-                                <span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
-                                <span>Experimental Features</span>
-                            </span>
-                        </h3>
-                        <div class="notification is-warning is-light">
-                            <p class="is-size-7"><strong>Warning:</strong> These features are experimental and may cause longer processing times or temporary camera conflicts. Use with caution.</p>
-                        </div>
-                        
-                        <!-- HDR Enhancement -->
-                        <div class="field">
-                            <div class="control">
-                                <label class="checkbox">
-                                    <input type="checkbox" name="experimental_hdr_enabled" {% if settings.image_enhancement.experimental_hdr_enabled %}checked{% endif %}>
-                                    Enable HDR (High Dynamic Range) Capture
-                                </label>
-                            </div>
-                            <p class="help">Captures multiple exposures and combines them for better detail in shadows and highlights. Replaces standard capture when enabled.</p>
-                        </div>
-                        
-                        <div class="columns">
-                            <div class="column">
-                                <div class="field">
-                                    <label class="label">HDR Exposure Times (μs)</label>
-                                    <div class="control">
-                                        <input class="input" type="text" name="experimental_hdr_exposure_times" value="{{ settings.image_enhancement.experimental_hdr_exposure_times | join(',') }}" placeholder="5000,20000,50000">
-                                    </div>
-                                    <p class="help">Comma-separated exposure times in microseconds (low, medium, high)</p>
-                                </div>
-                            </div>
-                            <div class="column">
-                                <div class="field">
-                                    <label class="label">HDR Gamma (1.0-3.0)</label>
-                                    <div class="control">
-                                        <input class="input" type="number" name="experimental_hdr_gamma" value="{{ settings.image_enhancement.experimental_hdr_gamma }}" min="1.0" max="3.0" step="0.1">
-                                    </div>
-                                    <p class="help">Controls tone mapping for HDR processing</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Image Stacking -->
-                        <div class="field">
-                            <div class="control">
-                                <label class="checkbox">
-                                    <input type="checkbox" name="experimental_stacking_enabled" {% if settings.image_enhancement.experimental_stacking_enabled %}checked{% endif %}>
-                                    Enable Image Stacking for Noise Reduction
-                                </label>
-                            </div>
-                            <p class="help">Captures multiple images and aligns/averages them to reduce noise. Cannot be used with HDR.</p>
-                        </div>
-                        
-                        <div class="columns">
-                            <div class="column">
-                                <div class="field">
-                                    <label class="label">Number of Images (3-10)</label>
-                                    <div class="control">
-                                        <input class="input" type="number" name="experimental_stacking_num_images" value="{{ settings.image_enhancement.experimental_stacking_num_images }}" min="3" max="10">
-                                    </div>
-                                    <p class="help">More images = better noise reduction but longer processing time</p>
-                                </div>
-                            </div>
-                            <div class="column">
-                                <div class="field">
-                                    <label class="label">Alignment Threshold (0.1-1.0)</label>
-                                    <div class="control">
-                                        <input class="input" type="number" name="experimental_stacking_alignment_threshold" value="{{ settings.image_enhancement.experimental_stacking_alignment_threshold }}" min="0.1" max="1.0" step="0.1">
-                                    </div>
-                                    <p class="help">Quality threshold for image alignment (higher = stricter)</p>
-                                </div>
-                            </div>
-                        </div>
-                        
                     </div>
                 </div>
+
+                <!-- OCR Settings -->
+                <div class="box">
+                    <h3 class="title is-5">OCR Preferences</h3>
+                    <div class="field">
+                        <label class="label">Preferred OCR Mode</label>
+                        <div class="control">
+                            <div class="select">
+                                <select id="ocr-preferred-mode">
+                                    <option value="local" {{ 'selected' if user_settings.ocr.preferred_mode == 'local' else '' }}>Local Processing</option>
+                                    <option value="remote" {{ 'selected' if user_settings.ocr.preferred_mode == 'remote' else '' }}>Remote Server</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <button class="button is-primary" type="button" onclick="saveUserSettings('ocr')">
+                                <span class="icon"><i class="fas fa-save"></i></span>
+                                <span>Save OCR Settings</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- UI Settings -->
+                <div class="box">
+                    <h3 class="title is-5">Interface Preferences</h3>
+                    <div class="field">
+                        <label class="label">Gallery Sort Order</label>
+                        <div class="control">
+                            <div class="select">
+                                <select id="gallery-sort-order">
+                                    <option value="created_desc" {{ 'selected' if user_settings.ui.gallery_sort_order == 'created_desc' else '' }}>Newest First</option>
+                                    <option value="created_asc" {{ 'selected' if user_settings.ui.gallery_sort_order == 'created_asc' else '' }}>Oldest First</option>
+                                    <option value="name_asc" {{ 'selected' if user_settings.ui.gallery_sort_order == 'name_asc' else '' }}>Name A-Z</option>
+                                    <option value="name_desc" {{ 'selected' if user_settings.ui.gallery_sort_order == 'name_desc' else '' }}>Name Z-A</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label">Items Per Page</label>
+                        <div class="control">
+                            <div class="select">
+                                <select id="items-per-page">
+                                    <option value="10" {{ 'selected' if user_settings.ui.items_per_page == 10 else '' }}>10</option>
+                                    <option value="20" {{ 'selected' if user_settings.ui.items_per_page == 20 else '' }}>20</option>
+                                    <option value="50" {{ 'selected' if user_settings.ui.items_per_page == 50 else '' }}>50</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <button class="button is-primary" type="button" onclick="saveUserSettings('ui')">
+                                <span class="icon"><i class="fas fa-save"></i></span>
+                                <span>Save UI Settings</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Settings Tab -->
+            <div id="system-settings" class="tab-content" style="display: none;">
+                <h2 class="title is-4">System Configuration</h2>
+                <p class="subtitle is-6 has-text-grey">These settings affect all users of the system.</p>
                 
-                <hr>
-                <h2 class="title is-5 mt-5">Default Prompt Templates</h2>
-                <p class="is-size-7 has-text-grey-light mb-4">Edit the default prompts used for various AI actions. The AI will append the relevant text to these templates.</p>
+                <div class="box">
+                    <h3 class="title is-5">LLM Configuration</h3>
+                    <div class="field">
+                        <label class="label" for="llm_server_url">LLM Server URL</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="url" id="llm_server_url" value="{{ system_settings.llm_server_url }}" placeholder="e.g. http://localhost:11434/api/generate">
+                            <span class="icon is-small is-left"><i class="fas fa-server"></i></span>
+                        </div>
+                    </div>
 
-                {% for key in default_prompt_keys %}
-                <div class="field mb-5">
-                    <label class="label" for="prompt_{{key}}">{{ key.replace('_', ' ') | title }}</label>
-                    <div class="control">
-                        <textarea id="prompt_{{key}}" name="prompt_{{key}}" class="textarea prompt-textarea" rows="6">{{ settings.prompts.get(key, '') }}</textarea>
+                    <div class="field">
+                        <label class="label" for="llm_model_name">LLM Model Name</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="text" id="llm_model_name" value="{{ system_settings.llm_model_name }}" placeholder="e.g. llama3.1:8b">
+                            <span class="icon is-small is-left"><i class="fas fa-brain"></i></span>
+                        </div>
                     </div>
                 </div>
-                {% endfor %}
 
-                <div class="field mt-6">
+                <div class="box">
+                    <h3 class="title is-5">OCR Configuration</h3>
+                    <div class="field">
+                        <label class="label">Default OCR Mode</label>
+                        <div class="control">
+                            <div class="select">
+                                <select id="system_ocr_mode">
+                                    <option value="local" {{ 'selected' if system_settings.ocr_mode == 'local' else '' }}>Local Processing</option>
+                                    <option value="remote" {{ 'selected' if system_settings.ocr_mode == 'remote' else '' }}>Remote Server</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="label" for="ocr_server_url">OCR Server URL</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="url" id="ocr_server_url" value="{{ system_settings.ocr_server_url }}" placeholder="e.g. http://localhost:8080/ocr">
+                            <span class="icon is-small is-left"><i class="fas fa-eye"></i></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field is-grouped">
                     <div class="control">
-                        <button type="submit" class="button is-primary is-fullwidth is-medium">
+                        <button class="button is-primary" type="button" onclick="saveSystemSettings()">
                             <span class="icon"><i class="fas fa-save"></i></span>
-                            <span>Save All Settings</span>
+                            <span>Save System Settings</span>
                         </button>
                     </div>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </section>
+
+<!-- Notification placeholder for AJAX responses -->
+<div id="notification-placeholder"></div>
+
 {% endblock %}
 
 {% block scripts %}

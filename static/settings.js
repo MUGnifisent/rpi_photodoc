@@ -1,83 +1,201 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Handle OCR mode switching
-    const ocrModeLocal = document.getElementById('ocr_mode_local');
-    const ocrModeRemote = document.getElementById('ocr_mode_remote');
-    const ocrServerSettings = document.getElementById('ocr-server-settings');
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching functionality
+    const tabs = document.querySelectorAll('.tabs li');
+    const tabContents = document.querySelectorAll('.tab-content');
     
-    function updateOcrSettings() {
-        if (ocrModeRemote.checked) {
-            ocrServerSettings.classList.add('visible');
-            document.getElementById('ocr_server_url').required = true;
-        } else {
-            ocrServerSettings.classList.remove('visible');
-            document.getElementById('ocr_server_url').required = false;
-        }
-    }
-    
-    // Set initial state
-    updateOcrSettings();
-    
-    // Add event listeners
-    ocrModeLocal.addEventListener('change', updateOcrSettings);
-    ocrModeRemote.addEventListener('change', updateOcrSettings);
-    
-    // Handle image enhancement settings toggle
-    const enhancementEnabled = document.querySelector('input[name="enhancement_enabled"]');
-    const enhancementSettings = document.getElementById('enhancement-settings');
-    
-    function updateEnhancementSettings() {
-        if (enhancementEnabled.checked) {
-            enhancementSettings.style.display = 'block';
-        } else {
-            enhancementSettings.style.display = 'none';
-        }
-    }
-    
-    // Set initial state for enhancement settings
-    updateEnhancementSettings();
-    
-    // Add event listener for enhancement toggle
-    enhancementEnabled.addEventListener('change', updateEnhancementSettings);
-    
-    // Handle experimental features mutual exclusion
-    const hdrEnabled = document.querySelector('input[name="experimental_hdr_enabled"]');
-    const stackingEnabled = document.querySelector('input[name="experimental_stacking_enabled"]');
-    
-    function updateExperimentalFeatures() {
-        // If HDR is enabled, disable stacking
-        if (hdrEnabled && hdrEnabled.checked) {
-            if (stackingEnabled) {
-                stackingEnabled.checked = false;
-                stackingEnabled.disabled = true;
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetTab = this.getAttribute('data-tab');
+            
+            // Remove active class from all tabs
+            tabs.forEach(t => t.classList.remove('is-active'));
+            // Add active class to clicked tab
+            this.classList.add('is-active');
+            
+            // Hide all tab contents
+            tabContents.forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            // Show target tab content
+            const targetContent = document.getElementById(targetTab);
+            if (targetContent) {
+                targetContent.style.display = 'block';
             }
-        } else if (hdrEnabled) {
-            if (stackingEnabled) {
-                stackingEnabled.disabled = false;
-            }
-        }
-        
-        // If stacking is enabled, disable HDR
-        if (stackingEnabled && stackingEnabled.checked) {
-            if (hdrEnabled) {
-                hdrEnabled.checked = false;
-                hdrEnabled.disabled = true;
-            }
-        } else if (stackingEnabled) {
-            if (hdrEnabled) {
-                hdrEnabled.disabled = false;
-            }
-        }
-    }
+        });
+    });
     
-    // Set initial state for experimental features
-    if (hdrEnabled && stackingEnabled) {
-        updateExperimentalFeatures();
-        
-        // Add event listeners for mutual exclusion
-        hdrEnabled.addEventListener('change', updateExperimentalFeatures);
-        stackingEnabled.addEventListener('change', updateExperimentalFeatures);
-    }
+    // Enhancement options visibility toggle
+    const enhancementEnabled = document.getElementById('enhancement-enabled');
+    const enhancementOptions = document.getElementById('enhancement-options');
     
-    // Note: Radio and checkbox styling is now handled by CSS
-    // No need for JavaScript styling functions anymore
+    if (enhancementEnabled && enhancementOptions) {
+        enhancementEnabled.addEventListener('change', function() {
+            enhancementOptions.style.display = this.checked ? 'block' : 'none';
+        });
+    }
 });
+
+// Show notification
+function showNotification(message, type = 'info') {
+    const placeholder = document.getElementById('notification-placeholder');
+    const notification = document.createElement('div');
+    notification.className = `notification is-${type} is-light`;
+    notification.innerHTML = `
+        <button class="delete" onclick="this.parentElement.remove();"></button>
+        ${message}
+    `;
+    
+    placeholder.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Save user settings for a specific category
+function saveUserSettings(category) {
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    
+    // Show loading state
+    button.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-spin"></i></span><span>Saving...</span>';
+    button.disabled = true;
+    
+    let settings = {};
+    
+    if (category === 'image_enhancement') {
+        settings = {
+            enabled: document.getElementById('enhancement-enabled').checked,
+            denoise_enabled: document.getElementById('denoise-enabled').checked,
+            contrast_enabled: document.getElementById('contrast-enabled').checked,
+            sharpen_enabled: document.getElementById('sharpen-enabled').checked,
+            color_correction_enabled: document.getElementById('color-correction-enabled').checked,
+            camera_optimal_settings: document.getElementById('camera-optimal-settings').checked
+        };
+    } else if (category === 'ocr') {
+        settings = {
+            preferred_mode: document.getElementById('ocr-preferred-mode').value
+        };
+    } else if (category === 'ui') {
+        settings = {
+            gallery_sort_order: document.getElementById('gallery-sort-order').value,
+            items_per_page: parseInt(document.getElementById('items-per-page').value)
+        };
+    }
+    
+    fetch(`/settings/user/${category}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(`${category.replace('_', ' ')} settings saved successfully!`, 'success');
+        } else {
+            showNotification(data.message || 'Failed to save settings', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving settings:', error);
+        showNotification('Error saving settings', 'danger');
+    })
+    .finally(() => {
+        // Restore button state
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+// Reset user settings to defaults
+function resetUserSettings(category) {
+    if (!confirm(`Are you sure you want to reset ${category.replace('_', ' ')} settings to defaults?`)) {
+        return;
+    }
+    
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    
+    // Show loading state
+    button.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-spin"></i></span><span>Resetting...</span>';
+    button.disabled = true;
+    
+    fetch(`/settings/user/${category}/reset`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(`${category.replace('_', ' ')} settings reset to defaults!`, 'success');
+            // Reload page to show updated values
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.message || 'Failed to reset settings', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error resetting settings:', error);
+        showNotification('Error resetting settings', 'danger');
+    })
+    .finally(() => {
+        // Restore button state
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+// Save system settings
+function saveSystemSettings() {
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    
+    // Show loading state
+    button.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-spin"></i></span><span>Saving...</span>';
+    button.disabled = true;
+    
+    const settings = {
+        llm_server_url: document.getElementById('llm_server_url').value,
+        llm_model_name: document.getElementById('llm_model_name').value,
+        ocr_mode: document.getElementById('system_ocr_mode').value,
+        ocr_server_url: document.getElementById('ocr_server_url').value
+    };
+    
+    fetch('/settings/system', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('System settings saved successfully!', 'success');
+        } else {
+            showNotification(data.message || 'Failed to save system settings', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving system settings:', error);
+        showNotification('Error saving system settings', 'danger');
+    })
+    .finally(() => {
+        // Restore button state
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+// Show advanced settings (placeholder for future implementation)
+function showAdvancedSettings() {
+    showNotification('Advanced settings will be available in a future update', 'info');
+}
