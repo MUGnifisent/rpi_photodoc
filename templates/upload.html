@@ -197,6 +197,8 @@
     .button-main:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        background: #4a4a4a;
+        color: #888;
     }
     .file-input {
         display: none;
@@ -205,20 +207,26 @@
         color: #e0e0e0;
         background: #181818;
         border: 1.5px solid #333;
-        border-radius: 10px;
-        padding: 1em 1.2em;
+        border-radius: 12px;
+        padding: 0.85em 1.2em;
         width: 100%;
         text-align: center;
         font-size: 1.08em;
         margin-bottom: 1.2em;
         margin-top: 0;
         box-sizing: border-box;
-        min-height: 2.5em;
+        min-height: 2.8em;
         display: flex;
         align-items: center;
         justify-content: center;
         letter-spacing: 0.01em;
-        box-shadow: 0 1px 4px 0 rgba(0,0,0,0.07);
+        box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .file-name.has-file {
+        border-color: #ff6600;
+        color: #ff6600;
+        background: #1e1e1e;
     }
     .box#upload-box {
         background: #181818;
@@ -289,17 +297,17 @@
             <form method="POST" action="{{ url_for('main.process_upload') }}" enctype="multipart/form-data" id="upload-form">
                 <div class="field">
                     <label class="upload-box-label" for="file-upload-input">Image File</label>
-                    <label class="button-main" tabindex="0">
+                    <label class="button-main" tabindex="0" id="file-select-button">
                         <span class="file-icon"><i class="fas fa-upload"></i></span>
                         <span class="file-label">Choose a file...</span>
                         <input class="file-input" type="file" name="file" accept="image/png, image/jpeg, image/webp" id="file-upload-input">
                     </label>
-                    <span class="file-name">No file selected</span>
+                    <span class="file-name" id="file-name-display">No file selected</span>
                 </div>
                 <div id="upload-form-error-placeholder" class="mt-2"></div>
                 <div class="field mt-5">
                     <div class="control has-text-centered">
-                        <button type="submit" class="button-main" id="upload-submit-button">
+                        <button type="submit" class="button-main" id="upload-submit-button" disabled>
                             <span class="icon"><i class="fas fa-cogs"></i></span>
                             <span>Upload and Process</span>
                         </button>
@@ -370,15 +378,31 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('file-upload-input');
-    const fileNameDisplay = document.querySelector('.file-name');
+    const fileNameDisplay = document.getElementById('file-name-display');
+    const fileSelectButton = document.getElementById('file-select-button');
+    const uploadSubmitButton = document.getElementById('upload-submit-button');
+    
     if (fileInput && fileNameDisplay) {
         fileInput.onchange = () => {
             if (fileInput.files.length > 0) {
                 fileNameDisplay.textContent = fileInput.files[0].name;
+                fileNameDisplay.classList.add('has-file');
+                if (uploadSubmitButton) {
+                    uploadSubmitButton.disabled = false;
+                }
             } else {
                 fileNameDisplay.textContent = "No file selected";
+                fileNameDisplay.classList.remove('has-file');
+                if (uploadSubmitButton) {
+                    uploadSubmitButton.disabled = true;
+                }
             }
         }
+    }
+    
+    // Initialize submit button state
+    if (uploadSubmitButton) {
+        uploadSubmitButton.disabled = true;
     }
 
     const uploadForm = document.getElementById('upload-form');

@@ -274,4 +274,61 @@ a:hover {
     box-shadow: 0 2px 12px 0 rgba(255,136,0,0.18);
 }
 
-/* Remove/override any previous .button-main or .button.upload-flat definitions in page-level styles */ 
+/* Remove/override any previous .button-main or .button.upload-flat definitions in page-level styles */
+
+/* Radio button styling for better visibility */
+.radio {
+    color: #e0e0e0;
+    font-weight: 500;
+    padding: 0.75em 1em;
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    margin-bottom: 0.5em;
+    display: block;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.radio:hover {
+    background: #252525;
+    border-color: #ff6600;
+    color: #ff6600;
+}
+
+.radio input[type="radio"] {
+    margin-right: 0.75em;
+    accent-color: #ff6600;
+}
+
+.radio input[type="radio"]:checked + span,
+.radio:has(input[type="radio"]:checked) {
+    background: #2a2a2a;
+    border-color: #ff6600;
+    color: #ff6600;
+}
+
+/* Fix for older browsers that don't support :has() */
+.radio input[type="radio"]:checked {
+    accent-color: #ff6600;
+}
+
+.radio input[type="radio"]:checked ~ * {
+    color: #ff6600;
+}
+
+/* Disabled button styling consistency */
+.button:disabled,
+.button-main:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    background: #4a4a4a !important;
+    color: #888 !important;
+    border-color: #4a4a4a !important;
+}
+
+/* Ensure good contrast for form labels */
+.field .label {
+    color: #e0e0e0;
+    font-weight: 600;
+} 

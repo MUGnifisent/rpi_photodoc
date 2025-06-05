@@ -157,6 +157,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add event listeners
     ocrModeLocal.addEventListener('change', updateOcrSettings);
     ocrModeRemote.addEventListener('change', updateOcrSettings);
+    
+    // Update radio button styling on change
+    function updateRadioStyles() {
+        document.querySelectorAll('.radio').forEach(label => {
+            const radio = label.querySelector('input[type="radio"]');
+            if (radio && radio.checked) {
+                label.style.background = '#2a2a2a';
+                label.style.borderColor = '#ff6600';
+                label.style.color = '#ff6600';
+            } else {
+                label.style.background = '#1e1e1e';
+                label.style.borderColor = '#333';
+                label.style.color = '#e0e0e0';
+            }
+        });
+    }
+    
+    // Set initial radio styling
+    updateRadioStyles();
+    
+    // Add listeners for all radio buttons
+    document.querySelectorAll('input[type="radio"]').forEach(radio => {
+        radio.addEventListener('change', updateRadioStyles);
+    });
 });
 </script>
 {% endblock %}
