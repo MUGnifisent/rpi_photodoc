@@ -132,3 +132,5 @@ documents.json
 photos.json
 # Individual prompt files in config/prompts/ are part of the repo by default.
 # If you add a mechanism for user-uploaded/custom prompts outside this structure, ignore them. 
+
+ocr_logs/

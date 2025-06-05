@@ -73,7 +73,8 @@ elif ! grep -q "FLASK_APP=app.py" .flaskenv; then
 fi
 
 echo "Setup complete. Starting Flask server..."
-flask run --host=0.0.0.0 --port=5000
+# Ensure we use the virtual environment's Python and Flask
+./venv/bin/python -m flask run --host=0.0.0.0 --port=5000
 
 # Deactivate venv when server stops (though flask run might not return control here easily)
 # This is more for cleanup if the script were to continue after flask run.

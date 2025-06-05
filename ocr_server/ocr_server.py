@@ -29,7 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class OCRServer:
-    def __init__(self, config_file='ocr_server_config.yaml'):
+    def __init__(self, config_file='./config/ocr_server_config.yaml'):
         self.app = Flask(__name__)
         self.config_file = config_file
         self.config = self.load_config()
@@ -99,7 +99,7 @@ class OCRServer:
     def create_example_config(self, config):
         """Create an example configuration file"""
         try:
-            example_file = 'ocr_server_config.yaml.example'
+            example_file = './config/ocr_server_config.yaml'
             with open(example_file, 'w') as f:
                 yaml.dump(config, f, indent=2, default_flow_style=False)
             logger.info(f"Created example configuration file: {example_file}")
