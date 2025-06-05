@@ -22,7 +22,9 @@ from document_manager import (
     load_all_documents_for_user,
     get_document_by_id,
     update_document,
-    delete_document
+    delete_document,
+    remove_photo_from_document,
+    get_documents_containing_photo
 )
 from datetime import datetime
 from camera_rpi import rpi_camera_instance # Import the camera instance
@@ -606,6 +608,124 @@ def toggle_camera_orientation():
     rpi_camera_instance.set_portrait_mode(bool(enabled))
     return jsonify({'success': True, 'portrait_mode': rpi_camera_instance.portrait_mode})
 
+# DELETION ROUTES
+
+@main_bp.route('/document/<doc_id>/delete', methods=['DELETE', 'POST'])
+@login_required
+def delete_document_route(doc_id):
+    """Delete an entire document"""
+    doc = get_document_by_id(doc_id, current_user.id)
+    if not doc:
+        return jsonify({'error': 'Document not found or access denied.'}), 404
+
+    if delete_document(current_user.id, doc_id):
+        logger.info(f"Document {doc_id} deleted by user {current_user.id}")
+        return jsonify({'success': True, 'message': 'Document deleted successfully.'})
+    else:
+        logger.error(f"Failed to delete document {doc_id} for user {current_user.id}")
+        return jsonify({'error': 'Failed to delete document.'}), 500
+
+@main_bp.route('/photo/<photo_id>/delete', methods=['DELETE', 'POST'])
+@login_required
+def delete_photo_route(photo_id):
+    """Delete a photo entirely (from database and filesystem)"""
+    photo = get_photo_by_id(photo_id, current_user.id)
+    if not photo:
+        return jsonify({'error': 'Photo not found or access denied.'}), 404
+
+    # Check if photo is used in any documents
+    containing_docs = get_documents_containing_photo(photo_id, current_user.id)
+    if containing_docs:
+        doc_names = [doc.get('name', 'Untitled') for doc in containing_docs]
+        return jsonify({
+            'error': f'Cannot delete photo. It is used in the following documents: {", ".join(doc_names)}. Remove it from these documents first.'
+        }), 400
+
+    # Delete the physical file
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    filepath = os.path.join(upload_folder, photo['image_filename'])
+    file_deleted = False
+    
+    if os.path.exists(filepath):
+        try:
+            os.remove(filepath)
+            file_deleted = True
+            logger.info(f"Deleted file: {filepath}")
+        except Exception as e:
+            logger.error(f"Failed to delete file {filepath}: {e}")
+            return jsonify({'error': f'Failed to delete photo file: {str(e)}'}), 500
+    else:
+        logger.warning(f"Photo file not found: {filepath}")
+        file_deleted = True  # Consider it "deleted" if it doesn't exist
+
+    # Delete from database
+    if file_deleted and delete_photo(current_user.id, photo_id):
+        logger.info(f"Photo {photo_id} completely deleted by user {current_user.id}")
+        return jsonify({'success': True, 'message': 'Photo deleted successfully.'})
+    else:
+        logger.error(f"Failed to delete photo {photo_id} from database for user {current_user.id}")
+        return jsonify({'error': 'Failed to delete photo from database.'}), 500
+
+@main_bp.route('/document/<doc_id>/photo/<photo_id>/remove', methods=['DELETE', 'POST'])
+@login_required
+def remove_photo_from_document_route(doc_id, photo_id):
+    """Remove a photo from a document (but keep the photo in the database)"""
+    doc = get_document_by_id(doc_id, current_user.id)
+    if not doc:
+        return jsonify({'error': 'Document not found or access denied.'}), 404
+
+    # Verify the photo exists and belongs to the user
+    photo = get_photo_by_id(photo_id, current_user.id)
+    if not photo:
+        return jsonify({'error': 'Photo not found or access denied.'}), 404
+
+    # Verify the photo is actually in this document
+    if photo_id not in doc.get('photo_ids', []):
+        return jsonify({'error': 'Photo is not in this document.'}), 400
+
+    if remove_photo_from_document(current_user.id, doc_id, photo_id):
+        # Regenerate combined text for the document
+        remaining_photos = []
+        updated_doc = get_document_by_id(doc_id, current_user.id)
+        
+        if updated_doc and updated_doc.get('photo_ids'):
+            for pid in updated_doc['photo_ids']:
+                remaining_photo = get_photo_by_id(pid, current_user.id)
+                if remaining_photo:
+                    remaining_photos.append(remaining_photo)
+        
+        # Update combined text based on remaining photos
+        combined_texts = [p.get('edited_text', '') for p in remaining_photos]
+        new_combined_text = "\n\n---\n\n".join(combined_texts)
+        
+        update_document(current_user.id, doc_id, {
+            'combined_text': new_combined_text,
+            'combined_text_generated_by_user': False
+        })
+        
+        logger.info(f"Photo {photo_id} removed from document {doc_id} by user {current_user.id}")
+        return jsonify({'success': True, 'message': 'Photo removed from document successfully.'})
+    else:
+        logger.error(f"Failed to remove photo {photo_id} from document {doc_id} for user {current_user.id}")
+        return jsonify({'error': 'Failed to remove photo from document.'}), 500
+
+@main_bp.route('/photo/<photo_id>/usage', methods=['GET'])
+@login_required
+def photo_usage(photo_id):
+    """Get information about which documents use a specific photo"""
+    photo = get_photo_by_id(photo_id, current_user.id)
+    if not photo:
+        return jsonify({'error': 'Photo not found or access denied.'}), 404
+
+    containing_docs = get_documents_containing_photo(photo_id, current_user.id)
+    
+    return jsonify({
+        'photo_id': photo_id,
+        'filename': photo['image_filename'],
+        'used_in_documents': [{'id': doc['id'], 'name': doc.get('name', 'Untitled')} for doc in containing_docs],
+        'usage_count': len(containing_docs)
+    })
+
 # Consider adding a route to delete a specific photo from a document (and optionally from the system if not used elsewhere)
 # @main_bp.route('/document/<doc_id>/photo/<photo_id>/remove', methods=['POST'])
 
@@ -629,4 +749,4 @@ def camera_set_autofocus():
 @login_required
 def camera_trigger_autofocus():
     success = rpi_camera_instance.trigger_autofocus()
-    return jsonify({'success': success}) 
+    return jsonify({'success': success})

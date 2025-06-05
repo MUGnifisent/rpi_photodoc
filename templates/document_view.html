@@ -25,6 +25,7 @@
         right: 1rem;
         display: flex;
         gap: 0.5rem;
+        flex-wrap: wrap;
     }
     .page-box .page-number {
         position: absolute;
@@ -108,6 +109,87 @@
         border: 1px solid #444;
         min-height: 150px;
     }
+    
+    .document-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+    .document-info {
+        flex: 1;
+    }
+    .document-actions {
+        flex-shrink: 0;
+        margin-left: 2rem;
+    }
+    
+    /* Page actions styling */
+    .page-actions .button {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.4);
+    }
+    .modal.is-active {
+        display: block;
+    }
+    .modal-content {
+        background-color: #1e1e1e;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #2c2c2c;
+        border-radius: 8px;
+        width: 80%;
+        max-width: 500px;
+        color: #e0e0e0;
+    }
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    .modal-header h3 {
+        margin: 0;
+        color: #ff6600;
+    }
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #888;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .modal-close:hover {
+        color: #fff;
+    }
+    .modal-body {
+        margin-bottom: 1.5rem;
+        line-height: 1.5;
+    }
+    .modal-footer {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
 </style>
 {% endblock %}
 
@@ -120,8 +202,20 @@
                 <span>Back to Gallery</span>
             </a>
         </div>
-        <h1 class="title is-2">{{ document.name }}</h1>
-        <p class="subtitle is-6 has-text-grey-light">Created: {{ document.created_at | format_datetime }} &bull; Last Updated: {{ document.updated_at | format_datetime }}</p>
+        
+        <div class="document-header">
+            <div class="document-info">
+                <h1 class="title is-2">{{ document.name }}</h1>
+                <p class="subtitle is-6 has-text-grey-light">Created: {{ document.created_at | format_datetime }} &bull; Last Updated: {{ document.updated_at | format_datetime }}</p>
+            </div>
+            <div class="document-actions">
+                <button class="button is-danger" id="delete-document-btn" data-doc-id="{{ document.id }}" data-doc-name="{{ document.name }}">
+                    <span class="icon"><i class="fas fa-trash"></i></span>
+                    <span>Delete Document</span>
+                </button>
+            </div>
+        </div>
+        
         <hr>
         
         <div id="pages-container">
@@ -136,6 +230,14 @@
                         </button>
                         <button class="button is-small is-info move-down" {% if loop.last %}disabled{% endif %}>
                             <span class="icon"><i class="fas fa-arrow-down"></i></span>
+                        </button>
+                        <button class="button is-small is-warning page-remove-btn" data-photo-id="{{ photo.id }}" data-filename="{{ photo.image_filename }}">
+                            <span class="icon"><i class="fas fa-minus"></i></span>
+                            <span>Remove</span>
+                        </button>
+                        <button class="button is-small is-danger page-delete-btn" data-photo-id="{{ photo.id }}" data-filename="{{ photo.image_filename }}">
+                            <span class="icon"><i class="fas fa-trash"></i></span>
+                            <span>Delete</span>
                         </button>
                     </div>
                     <img src="{{ url_for('uploaded_file', filename=photo.image_filename) }}" class="page-photo" alt="Page {{ loop.index }}">
@@ -305,6 +407,23 @@
         </div>
     </div>
 </section>
+
+<!-- Confirmation Modal -->
+<div id="confirmationModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Confirm Action</h3>
+            <button class="modal-close" id="modalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="modalMessage">Are you sure you want to proceed?</p>
+        </div>
+        <div class="modal-footer">
+            <button class="button is-light" id="modalCancel">Cancel</button>
+            <button class="button is-danger" id="modalConfirm">Confirm</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -312,6 +431,46 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // Modal elements
+    const confirmationModal = document.getElementById('confirmationModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMessage = document.getElementById('modalMessage');
+    const modalClose = document.getElementById('modalClose');
+    const modalCancel = document.getElementById('modalCancel');
+    const modalConfirm = document.getElementById('modalConfirm');
+    
+    let currentAction = null;
+
+    // Modal functions
+    function showModal(title, message, confirmCallback) {
+        modalTitle.textContent = title;
+        modalMessage.textContent = message;
+        confirmationModal.classList.add('is-active');
+        currentAction = confirmCallback;
+    }
+
+    function hideModal() {
+        confirmationModal.classList.remove('is-active');
+        currentAction = null;
+    }
+
+    // Modal event listeners
+    modalClose.addEventListener('click', hideModal);
+    modalCancel.addEventListener('click', hideModal);
+    modalConfirm.addEventListener('click', () => {
+        if (currentAction) {
+            currentAction();
+        }
+        hideModal();
+    });
+
+    // Close modal when clicking outside
+    window.addEventListener('click', (event) => {
+        if (event.target === confirmationModal) {
+            hideModal();
+        }
+    });
+
     // Initialize drag-and-drop sorting
     const container = document.getElementById('pages-container');
     new Sortable(container, {
@@ -560,6 +719,155 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById(`result-${textId}`).classList.remove('active');
         });
     });
+
+    // Document deletion functionality
+    document.getElementById('delete-document-btn').addEventListener('click', (e) => {
+        e.preventDefault();
+        const docId = e.target.closest('button').dataset.docId;
+        const docName = e.target.closest('button').dataset.docName;
+        
+        showModal(
+            'Delete Document',
+            `Are you sure you want to delete the document "${docName}"? This action cannot be undone and will remove all pages from this document.`,
+            async () => {
+                const btn = e.target.closest('button');
+                btn.classList.add('is-loading');
+                try {
+                    const response = await fetch(`/document/${docId}/delete`, {
+                        method: 'DELETE'
+                    });
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        // Redirect to gallery after successful deletion
+                        window.location.href = "{{ url_for('main.gallery_view') }}";
+                    } else {
+                        showNotification(result.error || 'Failed to delete document.', 'danger');
+                    }
+                } catch (error) {
+                    console.error('Error deleting document:', error);
+                    showNotification('An error occurred while deleting the document.', 'danger');
+                } finally {
+                    btn.classList.remove('is-loading');
+                }
+            }
+        );
+    });
+
+    // Page removal functionality (remove from document but keep photo)
+    document.querySelectorAll('.page-remove-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const photoId = btn.dataset.photoId;
+            const filename = btn.dataset.filename;
+            const docId = "{{ document.id }}";
+            
+            showModal(
+                'Remove Page',
+                `Are you sure you want to remove "${filename}" from this document? The photo will remain in your gallery.`,
+                async () => {
+                    btn.classList.add('is-loading');
+                    try {
+                        const response = await fetch(`/document/${docId}/photo/${photoId}/remove`, {
+                            method: 'DELETE'
+                        });
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            // Remove the page from the DOM
+                            const pageBox = btn.closest('.page-box');
+                            pageBox.remove();
+                            
+                            // Update page numbers
+                            updatePageOrder();
+                            
+                            // Update combined text
+                            document.getElementById('regenerate-combined').click();
+                            
+                            showNotification('Page removed from document successfully.', 'success');
+                        } else {
+                            showNotification(result.error || 'Failed to remove page from document.', 'danger');
+                        }
+                    } catch (error) {
+                        console.error('Error removing page from document:', error);
+                        showNotification('An error occurred while removing the page.', 'danger');
+                    } finally {
+                        btn.classList.remove('is-loading');
+                    }
+                }
+            );
+        });
+    });
+
+    // Page deletion functionality (delete photo entirely)
+    document.querySelectorAll('.page-delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const photoId = btn.dataset.photoId;
+            const filename = btn.dataset.filename;
+            
+            showModal(
+                'Delete Photo',
+                `Are you sure you want to permanently delete "${filename}"? This will remove it from all documents and cannot be undone.`,
+                async () => {
+                    btn.classList.add('is-loading');
+                    try {
+                        const response = await fetch(`/photo/${photoId}/delete`, {
+                            method: 'DELETE'
+                        });
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            // Remove the page from the DOM
+                            const pageBox = btn.closest('.page-box');
+                            pageBox.remove();
+                            
+                            // Update page numbers
+                            updatePageOrder();
+                            
+                            // Update combined text
+                            document.getElementById('regenerate-combined').click();
+                            
+                            showNotification('Photo deleted successfully.', 'success');
+                        } else {
+                            showNotification(result.error || 'Failed to delete photo.', 'danger');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting photo:', error);
+                        showNotification('An error occurred while deleting the photo.', 'danger');
+                    } finally {
+                        btn.classList.remove('is-loading');
+                    }
+                }
+            );
+        });
+    });
+
+    // Notification function
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification is-${type} is-light is-small mb-4`;
+        notification.innerHTML = `
+            <button class="delete is-small"></button>
+            ${message}
+        `;
+        
+        // Insert at the top of the container
+        const container = document.querySelector('.container');
+        const firstElement = container.querySelector('.mb-5') || container.firstElementChild;
+        container.insertBefore(notification, firstElement.nextSibling);
+        
+        // Add delete functionality
+        const deleteBtn = notification.querySelector('.delete');
+        deleteBtn.addEventListener('click', () => notification.remove());
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+    }
 });
 </script>
 {% endblock %}

@@ -90,6 +90,59 @@ def delete_document(user_id, doc_id):
         return True
     return False
 
+def remove_photo_from_document(user_id, doc_id, photo_id):
+    """Remove a photo from a document without deleting the photo itself"""
+    all_docs = []
+    try:
+        with open(get_documents_data_path(), 'r', encoding='utf-8') as f:
+            all_docs = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        current_app.logger.error(f"Error: {DOCUMENTS_DATA_FILE} not found when trying to remove photo from document.")
+        return False
+
+    doc_found = False
+    for i, doc in enumerate(all_docs):
+        if doc['id'] == doc_id and doc.get('user_id') == user_id:
+            if 'photo_ids' in doc and photo_id in doc['photo_ids']:
+                doc['photo_ids'].remove(photo_id)
+                doc['updated_at'] = datetime.utcnow().isoformat()
+                
+                # Regenerate combined_text if the document had any pages
+                # We need to get the remaining photos to regenerate combined text
+                # This requires importing photo_manager, but we'll handle this in the route
+                
+                all_docs[i] = doc
+                doc_found = True
+                current_app.logger.info(f"Removed photo {photo_id} from document {doc_id}")
+                break
+            else:
+                current_app.logger.warning(f"Photo {photo_id} not found in document {doc_id}")
+                return False
+    
+    if doc_found:
+        save_all_documents(all_docs)
+        return True
+    else:
+        current_app.logger.warning(f"Document {doc_id} not found for user {user_id} when trying to remove photo.")
+        return False
+
+def get_documents_containing_photo(photo_id, user_id=None):
+    """Get all documents that contain a specific photo"""
+    try:
+        with open(get_documents_data_path(), 'r', encoding='utf-8') as f:
+            all_docs = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+    
+    containing_docs = []
+    for doc in all_docs:
+        if user_id and doc.get('user_id') != user_id:
+            continue
+        if 'photo_ids' in doc and photo_id in doc['photo_ids']:
+            containing_docs.append(doc)
+    
+    return containing_docs
+
 def add_page_to_document(user_id, doc_id, page_data):
     all_docs = []
     try:
@@ -241,4 +294,4 @@ def create_document_from_sources(user_id, source_doc_ids, new_doc_name):
     # This is complex if images could be part of multiple documents (not the case here yet).
     # For now, we are not deleting the image files of the source documents as they are referenced by their filenames.
 
-    return new_document 
+    return new_document
