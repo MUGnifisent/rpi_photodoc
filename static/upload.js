@@ -199,32 +199,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function showLiveFeed() {
-            if (!cameraFeedImg || !cameraFeedContainer || !cameraLoadingOverlay) return;
-            if (captureInProgress) return; // Don't restart feed during capture
+            console.log("showLiveFeed called");
+            if (!cameraFeedImg || !cameraFeedContainer || !cameraLoadingOverlay) {
+                console.error("Missing feed elements:", {
+                    img: !!cameraFeedImg,
+                    container: !!cameraFeedContainer,
+                    overlay: !!cameraLoadingOverlay
+                });
+                return;
+            }
+            if (captureInProgress) {
+                console.log("Capture in progress, not showing live feed");
+                return;
+            }
 
+            console.log("Setting up camera feed");
             cameraFeedContainer.classList.add('visible');
             cameraFeedImg.classList.remove('visible');
             cameraLoadingOverlay.style.display = 'flex';
             cameraFeedImg.src = '';
 
             const feedUrl = window.apiUrls.cameraFeed + "?_nocache=" + new Date().getTime();
+            console.log("Camera feed URL:", feedUrl);
             cameraFeedImg.src = feedUrl;
 
             cameraFeedImg.onload = () => {
-                console.log("camera_feed_img loaded. Dimensions:", cameraFeedImg.offsetWidth, cameraFeedImg.offsetHeight);
+                console.log("camera_feed_img loaded successfully. Dimensions:", cameraFeedImg.offsetWidth, cameraFeedImg.offsetHeight);
                 cameraFeedImg.classList.add('visible');
                 cameraLoadingOverlay.style.display = 'none';
                 updatePortraitButton();
             };
 
-            cameraFeedImg.onerror = () => {
+            cameraFeedImg.onerror = (event) => {
                 console.error("Failed to load camera feed from URL:", feedUrl);
+                console.error("Image error event:", event);
                 cameraLoadingOverlay.textContent = 'Error loading feed.';
                 cameraFeedImg.classList.remove('visible');
             };
         }
 
         async function checkCameraStatus() {
+            console.log("Checking camera status...");
             showCameraLoading("Checking camera status...");
             startCameraButton.disabled = true;
             capturePhotoButton.disabled = true;
@@ -233,22 +248,30 @@ document.addEventListener('DOMContentLoaded', () => {
             oneshotAfBtn.disabled = true;
 
             try {
+                console.log("Fetching camera status from:", window.apiUrls.cameraStatus);
                 const response = await fetchWithTimeout(window.apiUrls.cameraStatus);
+                
+                console.log("Camera status response:", response.status, response.statusText);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
                 const data = await response.json();
+                console.log("Camera status data:", data);
+                
                 if (data.available) {
                     startCameraButton.disabled = false; 
                     if (data.streaming) {
+                        console.log("Camera already streaming, activating UI");
                         activateStreamUI();
                         cameraStatusText.textContent = "Camera live."; 
                     } else {
+                        console.log("Camera available but not streaming");
                         deactivateStreamUI("Camera ready. Press Start.", false);
                     }
                 } else {
+                    console.log("Camera not available:", data.message);
                     cameraStatusText.textContent = data.message || "RPi Camera not available.";
                     deactivateStreamUI(data.message || "RPi Camera not available.", true);
                 }
@@ -262,6 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (error.message.includes('HTTP')) {
                     errorMsg = `Server error: ${error.message}`;
                 }
+                console.log("Final error message:", errorMsg);
                 deactivateStreamUI(errorMsg, true);
             }
         }

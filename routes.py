@@ -254,11 +254,18 @@ def camera_status():
 @main_bp.route('/start_camera_stream', methods=['POST'])
 @login_required
 def start_camera_stream():
+    logger.info(f"Start camera stream requested by user {current_user.id}")
+    
     if not rpi_camera_instance.is_available():
+        logger.error("Start stream requested but camera not available")
         return jsonify({'success': False, 'error': 'Camera not available.'}), 503
+    
+    logger.info("Attempting to start camera stream")
     if rpi_camera_instance.start_streaming():
+        logger.info("Camera stream started successfully")
         return jsonify({'success': True, 'message': 'Camera stream started.'})
     else:
+        logger.error("Failed to start camera stream")
         return jsonify({'success': False, 'error': 'Failed to start camera stream.'}), 500
 
 @main_bp.route('/stop_camera_stream', methods=['POST'])
@@ -304,13 +311,18 @@ def gen_camera_feed():
 @login_required
 def camera_feed():
     """Video streaming route."""
+    logger.info(f"Camera feed requested by user {current_user.id}")
+    
     if not rpi_camera_instance.is_available():
-        # Return a placeholder image or an error response
-        # For now, returning a 404 or a specific error status
+        logger.error("Camera feed requested but camera not available")
         flash("RPi Camera is not available.", "warning")
-        # Consider redirecting or sending a JSON error
         return Response("Camera not available", status=503) # Service Unavailable
 
+    if not rpi_camera_instance._is_streaming:
+        logger.error("Camera feed requested but streaming not active")
+        return Response("Camera streaming not active", status=503)
+
+    logger.info("Serving camera feed stream")
     return Response(gen_camera_feed(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 

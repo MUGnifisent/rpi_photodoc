@@ -1,5 +1,6 @@
 import os
 import yaml # Changed from json
+import logging
 from flask import Flask, send_from_directory
 from flask_login import LoginManager, login_required # Added login_required for the /uploads route
 from dotenv import load_dotenv
@@ -7,6 +8,13 @@ from routes import main_bp # Changed to absolute import
 from settings_routes import settings_bp, load_settings as load_app_settings, get_config_path, PROMPTS_DIR_NAME, DEFAULT_PROMPT_KEYS, get_prompts_path # Changed to absolute import
 from datetime import datetime # Add this import
 from models import User, load_users, save_users # This is the primary import for models
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
