@@ -235,10 +235,21 @@ def logout():
 @main_bp.route('/camera_status', methods=['GET'])
 @login_required
 def camera_status():
-    if rpi_camera_instance.is_available():
-        return jsonify({'available': True, 'streaming': rpi_camera_instance._is_streaming})
-    else:
-        return jsonify({'available': False, 'message': 'RPi Camera not detected or failed to initialize.'})
+    logger.info("Camera status endpoint called")
+    try:
+        logger.info("Checking camera availability...")
+        available = rpi_camera_instance.is_available()
+        logger.info(f"Camera available: {available}")
+        if available:
+            streaming = rpi_camera_instance._is_streaming
+            logger.info(f"Camera streaming: {streaming}")
+            return jsonify({'available': True, 'streaming': streaming})
+        else:
+            logger.info("Camera not available, returning error response")
+            return jsonify({'available': False, 'message': 'RPi Camera not detected or failed to initialize.'})
+    except Exception as e:
+        logger.error(f"Error in camera_status: {e}")
+        return jsonify({'available': False, 'message': f'Camera status error: {e}'}), 500
 
 @main_bp.route('/start_camera_stream', methods=['POST'])
 @login_required
