@@ -31,7 +31,7 @@
                 {% endif %}
             {% endwith %}
 
-            <form method="POST">
+            <form method="POST" action="{{ url_for('main.login', next=request.args.get('next')) }}">
                 <div class="field">
                     <label class="label">Username</label>
                     <div class="control has-icons-left">
@@ -60,9 +60,9 @@
                 </div>
             </form>
             <p class="has-text-centered mt-4">
-                <small class="has-text-grey-light">Don't have an account? <a href="{{ url_for('main.register') }}">Sign up here</a>.</small>
+                <small class="has-text-grey-light">Don't have an account? <a href="{{ url_for('main.register', next=request.args.get('next')) }}">Sign up here</a>.</small>
             </p>
         </div>
     </div>
 </section>
-{% endblock %} 
+{% endblock %}

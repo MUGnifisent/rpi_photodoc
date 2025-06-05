@@ -6,6 +6,7 @@ import time # For camera feed
 from flask import render_template, Blueprint, request, redirect, url_for, flash, current_app, jsonify, Response
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
+from werkzeug.urls import url_parse  # Add this import for URL validation
 import easyocr
 # import cv2 # cv2 is imported in app.py if needed for specific image operations there, not directly in routes.
 from models import User
@@ -98,6 +99,12 @@ def call_llm(prompt_text_key, text_to_process, custom_prompt_text=None):
         logger.error(f"Failed to decode LLM JSON response: {response.text}")
         return "Error: Failed to decode LLM response (not JSON). Content: " + response.text[:200]
 
+def is_safe_url(target):
+    """Check if the target URL is safe for redirects"""
+    ref_url = url_parse(request.host_url)
+    test_url = url_parse(target)
+    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
+
 @main_bp.route('/')
 def index():
     return render_template('index.html')
@@ -106,16 +113,22 @@ def index():
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('main.gallery_view'))
+    
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
         user = User.get_by_username(username)
         if user and user.check_password(password):
             login_user(user)
-            # flash('Login successful!', 'success') # Optional: flash message
-            return redirect(url_for('main.gallery_view'))
+            
+            # Handle redirect after login
+            next_page = request.args.get('next')
+            if not next_page or not is_safe_url(next_page):
+                next_page = url_for('main.gallery_view')
+            return redirect(next_page)
         else:
             flash('Invalid username or password', 'error')
+    
     return render_template('login.html')
 
 @main_bp.route('/register', methods=['GET', 'POST'])
@@ -144,7 +157,12 @@ def register():
         if user:
             login_user(user)
             flash('Registration successful!', 'success')
-            return redirect(url_for('main.gallery_view'))
+            
+            # Handle redirect after registration
+            next_page = request.args.get('next')
+            if not next_page or not is_safe_url(next_page):
+                next_page = url_for('main.gallery_view')
+            return redirect(next_page)
         else:
             # This case might indicate an issue with User.create itself
             flash('An error occurred during registration. Please try again.', 'error')
