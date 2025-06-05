@@ -136,9 +136,25 @@ def call_llm(prompt_text_key, text_to_process, custom_prompt_text=None):
 
 def is_safe_url(target):
     """Check if the target URL is safe for redirects"""
-    ref_url = urlparse(request.host_url)
-    test_url = urlparse(target)
-    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
+    if not target:
+        return False
+    
+    # Parse the target URL
+    try:
+        parsed = urlparse(target)
+    except Exception:
+        return False
+    
+    # Allow relative URLs (no scheme or netloc)
+    if not parsed.netloc and not parsed.scheme:
+        return True
+    
+    # For absolute URLs, check if they match our host
+    if parsed.scheme in ('http', 'https'):
+        ref_url = urlparse(request.host_url)
+        return parsed.netloc == ref_url.netloc
+    
+    return False
 
 @main_bp.route('/')
 def index():
@@ -157,10 +173,11 @@ def login():
             login_user(user)
             
             # Handle redirect after login
-            next_page = request.args.get('next')
-            if not next_page or not is_safe_url(next_page):
-                next_page = url_for('main.gallery_view')
-            return redirect(next_page)
+            next_page = request.args.get('next') or request.form.get('next')
+            if next_page and is_safe_url(next_page):
+                return redirect(next_page)
+            else:
+                return redirect(url_for('main.gallery_view'))
         else:
             flash('Invalid username or password', 'error')
     
@@ -194,10 +211,11 @@ def register():
             flash('Registration successful!', 'success')
             
             # Handle redirect after registration
-            next_page = request.args.get('next')
-            if not next_page or not is_safe_url(next_page):
-                next_page = url_for('main.gallery_view')
-            return redirect(next_page)
+            next_page = request.args.get('next') or request.form.get('next')
+            if next_page and is_safe_url(next_page):
+                return redirect(next_page)
+            else:
+                return redirect(url_for('main.gallery_view'))
         else:
             # This case might indicate an issue with User.create itself
             flash('An error occurred during registration. Please try again.', 'error')
