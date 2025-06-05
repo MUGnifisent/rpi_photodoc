@@ -6,7 +6,7 @@ import time # For camera feed
 from flask import render_template, Blueprint, request, redirect, url_for, flash, current_app, jsonify, Response
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
-from werkzeug.urls import url_parse  # Add this import for URL validation
+from urllib.parse import urlparse  # URL validation for Werkzeug 3.x compatibility
 import easyocr
 # import cv2 # cv2 is imported in app.py if needed for specific image operations there, not directly in routes.
 from models import User
@@ -136,8 +136,8 @@ def call_llm(prompt_text_key, text_to_process, custom_prompt_text=None):
 
 def is_safe_url(target):
     """Check if the target URL is safe for redirects"""
-    ref_url = url_parse(request.host_url)
-    test_url = url_parse(target)
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(target)
     return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 @main_bp.route('/')
