@@ -105,5 +105,18 @@
 
 {% block scripts %}
 {{ super() }}
+<!-- API URLs for JavaScript -->
+<script>
+window.apiUrls = {
+    cameraStatus: "{{ url_for('main.camera_status') }}",
+    cameraFeed: "{{ url_for('main.camera_feed') }}",
+    startCameraStream: "{{ url_for('main.start_camera_stream') }}",
+    stopCameraStream: "{{ url_for('main.stop_camera_stream') }}",
+    captureRpiPhoto: "{{ url_for('main.capture_rpi_photo') }}",
+    toggleCameraOrientation: "{{ url_for('main.toggle_camera_orientation') }}",
+    cameraSetAutofocus: "{{ url_for('main.camera_set_autofocus') }}",
+    cameraTriggerAutofocus: "{{ url_for('main.camera_trigger_autofocus') }}"
+};
+</script>
 <script src="{{ url_for('static', filename='upload.js') }}"></script>
 {% endblock %}

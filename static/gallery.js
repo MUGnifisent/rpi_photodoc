@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const newName = newDocNameInput.value.trim();
         createDocBtn.classList.add('is-loading');
         try {
-            const response = await fetch("{{ url_for('main.create_document_route') }}", {
+            const response = await fetch(window.apiUrls.createDocumentRoute, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const result = await response.json();
             if (response.ok && result.new_document_id) {
-                window.location.href = "{{ url_for('main.document_view', doc_id='_PLACEHOLDER_') }}".replace('_PLACEHOLDER_', result.new_document_id);
+                window.location.href = window.apiUrls.documentView.replace('_PLACEHOLDER_', result.new_document_id);
             } else {
                 alert(result.error || 'Failed to create document.');
             }

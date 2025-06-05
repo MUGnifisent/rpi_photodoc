@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
             portraitMode = !portraitMode;
             updatePortraitButton();
             try {
-                await fetchWithTimeout("{{ url_for('main.toggle_camera_orientation') }}", {
+                await fetchWithTimeout(window.apiUrls.toggleCameraOrientation, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled: portraitMode })
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cameraLoadingOverlay.style.display = 'flex';
             cameraFeedImg.src = '';
 
-            const feedUrl = "{{ url_for('main.camera_feed') }}?_nocache=" + new Date().getTime();
+            const feedUrl = window.apiUrls.cameraFeed + "?_nocache=" + new Date().getTime();
             cameraFeedImg.src = feedUrl;
 
             cameraFeedImg.onload = () => {
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
             oneshotAfBtn.disabled = true;
 
             try {
-                const response = await fetchWithTimeout("{{ url_for('main.camera_status') }}");
+                const response = await fetchWithTimeout(window.apiUrls.cameraStatus);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showCameraLoading("Starting camera...");
             
             try {
-                const response = await fetchWithTimeout("{{ url_for('main.start_camera_stream') }}", { method: 'POST' });
+                const response = await fetchWithTimeout(window.apiUrls.startCameraStream, { method: 'POST' });
                 const result = await response.json();
                 if (response.ok && result.success) {
                     activateStreamUI();
@@ -361,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showCameraLoading("Stopping camera...");
             
             try {
-                const response = await fetchWithTimeout("{{ url_for('main.stop_camera_stream') }}", { method: 'POST' });
+                const response = await fetchWithTimeout(window.apiUrls.stopCameraStream, { method: 'POST' });
                 const result = await response.json();
                 if (response.ok && result.success) {
                     deactivateStreamUI("Camera stopped. Press Start to resume.", false);
@@ -408,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (captureMessagePlaceholder) captureMessagePlaceholder.innerHTML = '';
 
             try {
-                const response = await fetch("{{ url_for('main.capture_rpi_photo') }}", { method: 'POST' });
+                const response = await fetch(window.apiUrls.captureRpiPhoto, { method: 'POST' });
                 const result = await response.json();
 
                 if (response.ok && result.success) {
@@ -476,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
             toggleAfBtn.disabled = true;
             toggleAfBtn.classList.add('is-loading');
             try {
-                await fetchWithTimeout("{{ url_for('main.camera_set_autofocus') }}", {
+                await fetchWithTimeout(window.apiUrls.cameraSetAutofocus, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled: afEnabled })
@@ -499,7 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
             oneshotAfBtn.classList.add('is-loading');
             oneshotAfBtn.disabled = true;
             toggleAfBtn.disabled = true;
-            await fetchWithTimeout("{{ url_for('main.camera_trigger_autofocus') }}", { method: 'POST' });
+            await fetchWithTimeout(window.apiUrls.cameraTriggerAutofocus, { method: 'POST' });
             setTimeout(() => {
                 oneshotAfBtn.classList.remove('is-loading');
                 oneshotAfBtn.disabled = false;

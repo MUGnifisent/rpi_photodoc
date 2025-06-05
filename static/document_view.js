@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     if (response.ok) {
                         // Redirect to gallery after successful deletion
-                        window.location.href = "{{ url_for('main.gallery_view') }}";
+                        window.location.href = window.apiUrls.galleryView;
                     } else {
                         showNotification(result.error || 'Failed to delete document.', 'danger');
                     }
