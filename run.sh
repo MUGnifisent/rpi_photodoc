@@ -37,7 +37,7 @@ echo "You can access the application by navigating to http://localhost:5000 in y
 echo "Press CTRL+C to stop the server."
 
 # Use the python from the venv to run flask
-python3 -m flask run --host=0.0.0.0 --port=5000
+./venv/bin/python -m flask run --host=0.0.0.0 --port=5000
 
 # Deactivate virtual environment when script exits
 # This line will be reached if flask run exits gracefully or is interrupted.
