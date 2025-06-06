@@ -389,8 +389,8 @@ a:hover {
     display: inline-flex;
 }
 
-/* Full-width buttons for forms */
-.button-main {
+/* Full-width buttons for forms only */
+.button-main.is-fullwidth {
     width: 100% !important;
     max-width: 100% !important;
 }
@@ -459,16 +459,6 @@ a:hover {
     color: #212529 !important;
 }
 
-.button.is-primary {
-    background-color: #ff6600 !important;
-    border-color: #ff6600 !important;
-    color: #ffffff !important;
-}
-.button.is-primary:hover, .button.is-primary:focus {
-    background-color: #e65c00 !important;
-    border-color: #e65c00 !important;
-    color: #ffffff !important;
-}
 
 /* Disabled button styling consistency */
 .button:disabled,
