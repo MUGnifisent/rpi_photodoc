@@ -1,34 +1,42 @@
 #!/bin/bash
 
 #=============================================================================
-#  APPLICATION UPDATER
+#  PROJECT SETUP SCRIPT
 #=============================================================================
-# Updates the application with latest code and dependencies
+# Sets up the application environment and dependencies
 
 set -e
+
+REPO_URL="https://github.com/MUGnifisent/rpi_photodoc.git"
+PROJECT_DIR="rpi_photodoc"
 
 #-----------------------------------------------------------------------------
 # System Dependencies
 #-----------------------------------------------------------------------------
-echo "🔧 Updating system dependencies..."
+echo "🔧 Installing system dependencies..."
 echo "   This may require sudo password."
 
-if sudo apt update && sudo apt install -y python3.11-dev libcap-dev libcamera-apps python3-libcamera libssl-dev; then
-    echo "✅ System dependencies updated"
+if sudo apt update && sudo apt install -y git python3-venv python3.11-dev libcap-dev libcamera-apps python3-libcamera libssl-dev; then
+    echo "✅ System dependencies installed"
 else
-    echo "❌ Failed to update system dependencies"
+    echo "❌ Failed to install system dependencies"
     exit 1
 fi
 
 #-----------------------------------------------------------------------------
-# Code Update
+# Repository Setup
 #-----------------------------------------------------------------------------
-echo "📥 Pulling latest changes..."
-if git pull; then
-    echo "✅ Code updated"
+if [ -d "$PROJECT_DIR" ]; then
+    echo "📁 Updating existing repository..."
+    cd "$PROJECT_DIR"
+    git pull
+    cd ..
 else
-    echo "⚠️  Git pull failed - resolve conflicts manually"
+    echo "📥 Cloning repository..."
+    git clone "$REPO_URL" "$PROJECT_DIR"
 fi
+
+cd "$PROJECT_DIR"
 
 #-----------------------------------------------------------------------------
 # Python Environment
@@ -44,18 +52,25 @@ echo "🔄 Activating virtual environment..."
 source venv/bin/activate
 
 #-----------------------------------------------------------------------------
-# Dependencies Update
+# Dependencies
 #-----------------------------------------------------------------------------
 echo "📦 Upgrading pip..."
 pip3 install --upgrade pip
 
-echo "📦 Updating dependencies..."
+echo "📦 Installing dependencies..."
 if pip3 install -r requirements.txt; then
-    echo "✅ Dependencies updated"
+    echo "✅ Dependencies installed"
 else
-    echo "❌ Failed to update dependencies"
+    echo "❌ Failed to install dependencies"
     deactivate
     exit 1
+fi
+
+echo "🔧 Reinstalling cryptography and Werkzeug..."
+if pip3 install --force-reinstall --no-cache-dir cryptography Werkzeug; then
+    echo "✅ Security packages updated"
+else
+    echo "⚠️  Warning: Failed to reinstall security packages"
 fi
 
 #-----------------------------------------------------------------------------
@@ -73,5 +88,5 @@ fi
 deactivate
 
 echo ""
-echo "✅ Update complete!"
+echo "✅ Setup complete!"
 echo "🚀 Run './run.sh' to start the application"
