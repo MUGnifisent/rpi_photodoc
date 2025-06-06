@@ -249,10 +249,15 @@ a:hover {
     box-shadow: 0 2px 12px 0 rgba(255,136,0,0.18) !important;
 }
 
-/* Navbar button overrides - spacing only (sizes handled by unified system) */
+/* Navbar button overrides - make compact and properly sized */
 .navbar .button, .navbar .button-main {
-    margin-right: 0.5rem !important;
-    margin-bottom: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    margin-right: 0.5rem;
+    margin-bottom: 0;
+    font-size: 0.875rem;
+    padding: 0.5em 1em;
+    min-height: 2rem;
 }
 
 /* Remove/override any previous .button-main or .button.upload-flat definitions in page-level styles */
@@ -346,36 +351,41 @@ a:hover {
 /* Base button styling - applies to ALL buttons */
 .button, .button-main {
     /* Size and spacing */
-    font-size: 1rem !important;
-    padding: 0.6em 1.2em !important;
-    height: auto !important;
-    min-height: 2.5rem !important;
-    min-width: auto !important;
-    width: auto !important;
+    font-size: 1rem;
+    padding: 0.6em 1.2em;
+    height: auto;
+    min-height: 2.5rem;
+    min-width: auto;
+    width: auto;
     
     /* Typography */
-    font-weight: 500 !important;
-    font-family: inherit !important;
-    line-height: 1.4 !important;
-    text-align: center !important;
-    white-space: nowrap !important;
+    font-weight: 500;
+    font-family: inherit;
+    line-height: 1.4;
+    text-align: center;
+    white-space: nowrap;
     
     /* Visual styling */
-    border-radius: 8px !important;
-    border: 1px solid transparent !important;
+    border-radius: 8px;
+    border: 1px solid transparent;
     
-    /* Layout */
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 0.5em !important;
-    vertical-align: middle !important;
+    /* Layout - DO NOT override display to allow inline styles */
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    vertical-align: middle;
     
     /* Behavior */
-    transition: all 0.2s ease !important;
-    cursor: pointer !important;
-    text-decoration: none !important;
-    box-sizing: border-box !important;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+    box-sizing: border-box;
+}
+
+/* Only set display for visible buttons */
+.button:not([style*="display:none"]):not([style*="display: none"]), 
+.button-main:not([style*="display:none"]):not([style*="display: none"]) {
+    display: inline-flex;
 }
 
 /* Full-width buttons for forms */
@@ -386,21 +396,21 @@ a:hover {
 
 /* Size modifiers - work for ALL button types */
 .button.is-small, .button-main.is-small {
-    font-size: 0.875rem !important;
-    padding: 0.5em 1em !important;
-    min-height: 2rem !important;
+    font-size: 0.875rem;
+    padding: 0.5em 1em;
+    min-height: 2rem;
 }
 
 .button.is-medium, .button-main.is-medium {
-    font-size: 1.125rem !important;
-    padding: 0.75em 1.5em !important;
-    min-height: 3rem !important;
+    font-size: 1.125rem;
+    padding: 0.75em 1.5em;
+    min-height: 3rem;
 }
 
 .button.is-large, .button-main.is-large {
-    font-size: 1.25rem !important;
-    padding: 0.875em 1.75em !important;
-    min-height: 3.5rem !important;
+    font-size: 1.25rem;
+    padding: 0.875em 1.75em;
+    min-height: 3.5rem;
 }
 
 /* Color-only button type styling (base properties from unified system) */
