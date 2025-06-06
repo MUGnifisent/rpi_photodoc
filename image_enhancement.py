@@ -134,7 +134,7 @@ class ImageEnhancementManager:
             # Build enhancement pipeline based on settings
             enhancers = []
             
-            # Color correction (usually first for better subsequent processing)
+            # Color correction
             if self.settings.get('color_correction_enabled', False):
                 color_enhancer = ColorCorrectionEnhancer(
                     white_balance=self.settings.get('color_white_balance', True),
@@ -144,7 +144,7 @@ class ImageEnhancementManager:
                 enhancers.append(color_enhancer)
                 logger.info("Added color correction enhancer")
             
-            # Noise reduction (before sharpening to avoid amplifying noise)
+            # Noise reduction
             if self.settings.get('denoise_enabled', False):
                 denoise_enhancer = DenoiseEnhancer(
                     h_luminance=self.settings.get('denoise_strength', 5),
@@ -167,7 +167,7 @@ class ImageEnhancementManager:
                 enhancers.append(contrast_enhancer)
                 logger.info("Added contrast enhancer")
             
-            # Sharpening (usually last to avoid amplifying noise)
+            # Sharpening
             if self.settings.get('sharpen_enabled', False):
                 sharpen_enhancer = SharpenEnhancer(
                     strength=self.settings.get('sharpen_strength', 0.8)
@@ -176,12 +176,10 @@ class ImageEnhancementManager:
                 logger.info("Added sharpening enhancer")
             
             if enhancers:
-                # Use BGR format for OpenCV processing
                 # IMPORTANT: Do NOT call initialize_camera() on this enhancer
                 # to avoid conflicts with the Flask app's camera instance
                 self.enhancer = ImageEnhancer(enhancers, input_format='BGR')
                 logger.info(f"Image enhancer initialized with {len(enhancers)} enhancers")
-                logger.info("WARNING: ImageEnhancer camera initialization disabled to prevent conflicts")
             else:
                 logger.info("No enhancers enabled, image enhancement disabled")
                 self.enhancer = None
@@ -289,7 +287,6 @@ class ImageEnhancementManager:
                     return None
             
             if enhanced_image is not None:
-                # Convert from RGB (camera format) to BGR (OpenCV format) for saving
                 enhanced_image_bgr = cv2.cvtColor(enhanced_image, cv2.COLOR_RGB2BGR)
                 
                 # Save the enhanced image

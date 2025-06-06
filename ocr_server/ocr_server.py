@@ -60,11 +60,11 @@ class OCRServer:
             },
             'cors': {
                 'enabled': True,
-                'origins': '*'  # In production, specify allowed origins
+                'origins': '*'
             },
             'logging': {
                 'level': 'INFO',
-                'save_requests': False,  # Save processed images for debugging
+                'save_requests': False,
                 'request_log_dir': './ocr_logs'
             }
         }
@@ -91,7 +91,6 @@ class OCRServer:
                 logger.info("Using default configuration")
         else:
             logger.info(f"Config file {self.config_file} not found, using defaults")
-            # Create example config file
             self.create_example_config(default_config)
 
         return default_config
@@ -210,7 +209,7 @@ class OCRServer:
             
             self.reader = easyocr.Reader(
                 languages,
-                gpu=False  # Set to True if you have GPU support
+                gpu=False
             )
             logger.info("EasyOCR initialized successfully")
             

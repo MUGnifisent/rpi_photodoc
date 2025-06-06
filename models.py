@@ -151,13 +151,3 @@ class User(UserMixin):
     def __repr__(self):
         return f'<User {self.username}>'
 
-# Legacy functions for compatibility (these can be removed after testing)
-def load_users():
-    """Legacy function - no longer needed with SQLite"""
-    logger.info("load_users() called - no action needed with SQLite")
-    pass
-
-def save_users():
-    """Legacy function - no longer needed with SQLite"""
-    logger.info("save_users() called - no action needed with SQLite")
-    pass

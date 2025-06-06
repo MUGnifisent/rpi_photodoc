@@ -109,9 +109,8 @@ def save_system_settings(settings):
         logger.error(f"Error saving system settings: {e}")
         return False
 
-# Legacy functions for compatibility
 def load_settings():
-    """Legacy function - now loads system settings only"""
+    """Load system settings"""
     return load_system_settings()
 
 def get_prompt(prompt_key):
@@ -153,7 +152,7 @@ def settings_page():
                          default_prompt_keys=DEFAULT_PROMPT_KEYS)
 
 @settings_bp.route('/system', methods=['POST'])
-@login_required  # TODO: Add admin check
+@login_required
 def update_system_settings():
     """Update system-wide settings (admin only)"""
     try:

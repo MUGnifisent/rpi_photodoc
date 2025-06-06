@@ -1,13 +1,13 @@
 import os
-import yaml # Changed from json
+import yaml
 import logging
 from flask import Flask, send_from_directory
-from flask_login import LoginManager, login_required # Added login_required for the /uploads route
+from flask_login import LoginManager, login_required
 from dotenv import load_dotenv
 from routes import main_bp # Changed to absolute import
 from settings_routes import settings_bp, load_settings as load_app_settings, get_config_path, PROMPTS_DIR_NAME, DEFAULT_PROMPT_KEYS, get_prompts_path # Changed to absolute import
-from datetime import datetime # Add this import
-from models import User, load_users, save_users # This is the primary import for models
+from datetime import datetime
+from models import User # This is the primary import for models
 import database
 
 # Configure logging
@@ -27,8 +27,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24))
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['ALLOWED_EXTENSIONS'] = ALLOWED_EXTENSIONS
-app.config['CONFIG_DIR'] = os.path.join(app.root_path, 'config') # For convenience
-app.config['PROMPTS_DIR'] = os.path.join(app.config['CONFIG_DIR'], 'prompts') # For convenience
+app.config['CONFIG_DIR'] = os.path.join(app.root_path, 'config')
+app.config['PROMPTS_DIR'] = os.path.join(app.config['CONFIG_DIR'], 'prompts')
 
 # Jinja filter for formatting datetime
 @app.template_filter('format_datetime')
@@ -63,7 +63,6 @@ with app.app_context():
 # Initialize database and users within app context
 with app.app_context():
     database.init_db()  # Initialize SQLite database
-    load_users() # Legacy function - now does nothing with SQLite
 
 login_manager = LoginManager()
 login_manager.init_app(app)

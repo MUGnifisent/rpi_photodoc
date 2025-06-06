@@ -954,7 +954,7 @@ def camera_trigger_autofocus():
 @main_bp.route('/debug/camera_test')
 def debug_camera_test():
     try:
-        logger.info("=== DEBUG: Camera test endpoint called ===")
+        logger.info("Camera test endpoint called")
         logger.info(f"Camera instance: {rpi_camera_instance}")
         logger.info(f"Camera type: {type(rpi_camera_instance)}")
         logger.info(f"Camera initialized: {getattr(rpi_camera_instance, '_is_initialized', 'Unknown')}")

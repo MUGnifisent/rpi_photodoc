@@ -262,9 +262,6 @@ class DenoiseEnhancer(BaseEnhancer):
             y, cr, cb = cv2.split(ycrcb)
             
             # Apply bilateral filter to luminance channel only
-            # d: diameter of each pixel neighborhood
-            # sigmaColor: filter sigma in the color space
-            # sigmaSpace: filter sigma in the coordinate space
             y_denoised = cv2.bilateralFilter(
                 y, d=9, sigmaColor=self.h_luminance*2, sigmaSpace=self.h_luminance
             )
@@ -564,14 +561,12 @@ class ColorCorrectionEnhancer(BaseEnhancer):
         Returns:
             Temperature-adjusted image
         """
-        # For warmer: decrease blue, increase red
-        # For cooler: increase blue, decrease red
         if adjustment > 0:  # Warmer
             blue_factor = 1.0 - (0.2 * adjustment)
             red_factor = 1.0 + (0.2 * adjustment)
         else:  # Cooler (adjustment is negative)
-            blue_factor = 1.0 - (0.2 * adjustment)  # Will be > 1.0 for negative adjustment
-            red_factor = 1.0 + (0.2 * adjustment)   # Will be < 1.0 for negative adjustment
+            blue_factor = 1.0 - (0.2 * adjustment)
+            red_factor = 1.0 + (0.2 * adjustment)
         
         # Apply factors to channels
         result = image.copy().astype(np.float32)
@@ -649,7 +644,6 @@ class HDREnhancer(BaseEnhancer):
                 
                 # Convert from RGB (camera native) to BGR (OpenCV native) if needed
                 if self.color_input_format == 'RGB':
-                    self.logger.debug(f"Converting image from RGB to BGR for OpenCV processing")
                     img = cv2.cvtColor(raw_img, cv2.COLOR_RGB2BGR)
                 else:
                     img = raw_img
@@ -743,7 +737,6 @@ class ImageStackingEnhancer(BaseEnhancer):
                 
                 # Convert from RGB (camera native) to BGR (OpenCV native) if needed
                 if self.color_input_format == 'RGB':
-                    self.logger.debug(f"Converting image from RGB to BGR for OpenCV processing")
                     img = cv2.cvtColor(raw_img, cv2.COLOR_RGB2BGR)
                 else:
                     img = raw_img
@@ -994,82 +987,26 @@ class ImageEnhancer:
             self.camera.close()
 
 
-# Example usage
 if __name__ == "__main__":
-    # Create enhancers with optimized settings for color handling and performance
-    denoise = DenoiseEnhancer(
-        h_luminance=5,             # Lower values preserve more detail
-        h_color=5,                 # Lower values preserve color accuracy
-        preserve_colors=True,      # Use YCrCb color space for better color preservation
-        fast_mode=True,            # Use faster bilateral filter algorithm
-        downscale_factor=2         # Process at half resolution for better performance
-    )
+    denoise = DenoiseEnhancer(h_luminance=5, h_color=5, preserve_colors=True, fast_mode=True)
+    color_correction = ColorCorrectionEnhancer(white_balance=True, saturation_factor=1.1)
+    contrast = ContrastEnhancer(clip_limit=2.0, tile_grid_size=(8, 8), color_space='YCRCB')
+    sharpen = SharpenEnhancer(strength=0.8)
     
-    color_correction = ColorCorrectionEnhancer(
-        white_balance=True,        # Apply automatic white balance
-        saturation_factor=1.1,     # Slightly increase color saturation
-        temperature_adjustment=0.0 # No temperature adjustment by default
-    )
-    
-    contrast = ContrastEnhancer(
-        clip_limit=2.0,            # Lower clip limit to prevent color distortion
-        tile_grid_size=(8, 8),
-        color_space='YCRCB',       # Better for color accuracy than LAB
-        preserve_tone=True         # Preserve color relationships
-    )
-    
-    sharpen = SharpenEnhancer(strength=0.8)  # More conservative sharpening
-    
-    # Create main enhancer with pipeline - using RGB as input format since the camera captures in RGB
-    enhancer = ImageEnhancer(
-        [color_correction, denoise, contrast, sharpen],
-        input_format='RGB'  # Specify the color format as RGB to match the camera's output
-    )
-    
-    # Example of using multi-frame enhancers
-    """
-    # HDR enhancer usage example - captures multiple exposures and combines them
-    hdr = HDREnhancer(
-        exposure_times=[5000, 20000, 50000],  # Low, medium, high exposure in microseconds
-        camera=enhancer.camera,               # Pass camera reference
-        gamma=2.2,                            # Tone mapping parameter
-        color_input_format='RGB'              # Match camera output format
-    )
-    
-    # Image stacking enhancer usage example - captures multiple frames to reduce noise
-    stacking = ImageStackingEnhancer(
-        num_images=5,                         # Number of images to capture and stack
-        camera=enhancer.camera,               # Pass camera reference  
-        alignment_threshold=0.7,              # Feature matching quality threshold
-        color_input_format='RGB'              # Match camera output format
-    )
-    """
+    enhancer = ImageEnhancer([color_correction, denoise, contrast, sharpen], input_format='RGB')
     
     try:
-        # Initialize camera
-        enhancer.initialize_camera(resolution=(3280, 2464))  # Full resolution
-        
-        # Apply optimal settings before capture
-        optimal_settings = OptimalSettingsEnhancer(
-            exposure_time=20000,    # Adjust based on lighting conditions
-            analog_gain=1.0,        # Lower ISO for less noise
-            awb_mode='auto',        # Auto white balance
-            sharpness=1.5           # Moderate hardware sharpening
-        )
+        enhancer.initialize_camera(resolution=(3280, 2464))
+        optimal_settings = OptimalSettingsEnhancer(exposure_time=20000, analog_gain=1.0, awb_mode='auto', sharpness=1.5)
         optimal_settings.apply_to_camera(enhancer.camera)
-        
-        # Allow camera to adjust to settings
         time.sleep(2)
         
-        # Capture and enhance
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         output_path = f"enhanced_{timestamp}.jpg"
-        
         enhanced_image = enhancer.capture_and_enhance(output_path=output_path)
         print(f"Enhanced image saved to {output_path}")
         
     except Exception as e:
         print(f"Error: {str(e)}")
     finally:
-        # Clean up
         enhancer.close()

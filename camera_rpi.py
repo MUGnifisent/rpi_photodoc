@@ -25,7 +25,7 @@ class RPiCamera:
     _streaming_output = None
     _is_streaming = False
     _is_initialized = False
-    _camera_lock = Lock()  # Use Lock instead of Condition for cleaner locking
+    _camera_lock = Lock()
     portrait_mode = False
 
     def __new__(cls):
