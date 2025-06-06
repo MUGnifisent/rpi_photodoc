@@ -239,15 +239,15 @@ a:hover {
 
 /* Button-main color styling only (base properties inherited from unified system) */
 .button-main {
-    background-color: #ff8800 !important;
-    color: #ffffff !important;
-    border-color: #ff8800 !important;
-    box-shadow: 0 2px 8px 0 rgba(255,136,0,0.10) !important;
-}
-.button-main:hover, .button-main:focus {
     background-color: #e65c00 !important;
     color: #ffffff !important;
     border-color: #e65c00 !important;
+    box-shadow: 0 2px 8px 0 rgba(230,92,0,0.10) !important;
+}
+.button-main:hover, .button-main:focus {
+    background-color: #ff8800 !important;
+    color: #ffffff !important;
+    border-color: #ff8800 !important;
     box-shadow: 0 2px 12px 0 rgba(255,136,0,0.18) !important;
 }
 
