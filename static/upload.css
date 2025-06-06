@@ -31,7 +31,7 @@
 .camera-feed-container {
     position: relative;
     display: none;
-    margin: 0 auto 1.5em auto;
+    margin: 0 auto 1rem auto;
     width: auto;
     text-align: center;
     justify-content: center;
@@ -53,12 +53,11 @@
     background: #232323;
     border: none;
     box-shadow: 
-        0 0 0 2px #000000,
-        0 0 0 4px rgba(0,0,0,0.8),
-        0 0 0 6px rgba(0,0,0,0.6),
-        0 0 0 8px rgba(0,0,0,0.4),
-        0 0 0 10px rgba(0,0,0,0.2),
-        0 0 0 12px rgba(0,0,0,0.1);
+        0 0 0 1px rgba(0,0,0,0.3),
+        0 0 0 2px rgba(0,0,0,0.2),
+        0 0 0 3px rgba(0,0,0,0.15),
+        0 0 0 4px rgba(0,0,0,0.1),
+        0 0 0 5px rgba(0,0,0,0.05);
     transition: transform 0.3s;
 }
 
