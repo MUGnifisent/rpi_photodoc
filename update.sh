@@ -74,4 +74,4 @@ deactivate
 
 echo ""
 echo "✅ Update complete!"
-echo "🚀 Run './run.sh' to start the application"
+echo "🚀 Run 'bash run.sh' to start the application"
