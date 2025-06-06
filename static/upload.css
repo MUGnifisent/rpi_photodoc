@@ -130,33 +130,6 @@
     padding: 0 2rem;
 }
 
-.button.upload-flat {
-    background: #ff8800;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    box-shadow: none;
-    font-weight: 600;
-    font-size: 1.1rem;
-    padding: 0.9em 0;
-    transition: background 0.2s, box-shadow 0.2s;
-    margin-top: 1.2em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    max-width: 100%;
-    text-align: center;
-    gap: 0.7em;
-    letter-spacing: 0.01em;
-}
-
-.button.upload-flat:hover:not(:disabled), 
-.button.upload-flat:focus:not(:disabled) {
-    background: #ff6a00;
-    color: #fff;
-    box-shadow: 0 2px 8px 0 rgba(255,136,0,0.10);
-}
 
 .button:disabled {
     opacity: 0.5;
