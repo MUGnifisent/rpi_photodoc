@@ -20,10 +20,10 @@ main[role="main"] {
 }
 
 .button.is-primary {
-    background-color: #ff6600; /* Orange */
-    border-color: transparent;
-    color: #ffffff;
-    font-weight: bold;
+    background-color: #ff8800 !important; /* Match button-main orange */
+    border-color: transparent !important;
+    color: #ffffff !important;
+    font-weight: bold !important;
 }
 
 .button.is-primary:hover, .button.is-primary:focus {
@@ -42,9 +42,9 @@ main[role="main"] {
 }
 
 .button.is-light {
-    background-color: #363636;
-    border-color: #4a4a4a;
-    color: #f5f5f5;
+    background-color: #363636 !important;
+    border-color: #4a4a4a !important;
+    color: #f5f5f5 !important;
 }
 .button.is-light:hover, .button.is-light:focus {
     background-color: #4a4a4a !important;
