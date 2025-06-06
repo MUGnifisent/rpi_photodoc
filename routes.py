@@ -198,6 +198,23 @@ def is_safe_url(target):
 
 @main_bp.route('/')
 def index():
+    if current_user.is_authenticated:
+        # Check if user came from somewhere else (referrer)
+        referrer = request.headers.get('Referer')
+        if referrer and is_safe_url(referrer):
+            # Parse the referrer to get just the path
+            from urllib.parse import urlparse
+            parsed_referrer = urlparse(referrer)
+            referrer_path = parsed_referrer.path
+            
+            # Don't redirect back to auth pages or the main page itself
+            auth_pages = ['/', '/login', '/register']
+            if referrer_path not in auth_pages:
+                return redirect(referrer_path)
+        
+        # Fallback to gallery
+        return redirect(url_for('main.gallery_view'))
+    
     return render_template('index.html')
 
 @main_bp.route('/login', methods=['GET', 'POST'])
