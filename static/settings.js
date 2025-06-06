@@ -44,6 +44,9 @@ document.addEventListener('DOMContentLoaded', function() {
     setupAdvancedToggle('experimental-hdr-enabled', 'hdr-controls');
     setupAdvancedToggle('experimental-stacking-enabled', 'stacking-controls');
     
+    // Update fine-tuning section visibility
+    updateFineTuningVisibility();
+    
     // Experimental features mutual exclusion
     const hdrEnabled = document.getElementById('experimental-hdr-enabled');
     const stackingEnabled = document.getElementById('experimental-stacking-enabled');
@@ -271,8 +274,32 @@ function setupAdvancedToggle(checkboxId, controlsId) {
     if (checkbox && controls) {
         checkbox.addEventListener('change', function() {
             controls.style.display = this.checked ? 'block' : 'none';
+            updateFineTuningVisibility();
         });
     }
+}
+
+// Update fine-tuning section visibility based on enabled features
+function updateFineTuningVisibility() {
+    const fineTuningSection = document.getElementById('fine-tuning-section');
+    if (!fineTuningSection) return;
+    
+    const advancedCheckboxes = [
+        'denoise-enabled',
+        'contrast-enabled', 
+        'sharpen-enabled',
+        'color-correction-enabled',
+        'camera-optimal-settings',
+        'experimental-hdr-enabled',
+        'experimental-stacking-enabled'
+    ];
+    
+    const anyEnabled = advancedCheckboxes.some(id => {
+        const checkbox = document.getElementById(id);
+        return checkbox && checkbox.checked;
+    });
+    
+    fineTuningSection.style.display = anyEnabled ? 'block' : 'none';
 }
 
 // Update range input value display
