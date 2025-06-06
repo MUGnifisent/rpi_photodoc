@@ -122,11 +122,236 @@
                             </div>
                         </div>
                         
+                        <!-- Advanced Settings -->
                         <div class="field">
-                            <button class="button is-link is-small" type="button" onclick="showAdvancedSettings()">
-                                <span class="icon"><i class="fas fa-cogs"></i></span>
-                                <span>Advanced Settings</span>
-                            </button>
+                            <h4 class="title is-6">Fine-Tuning Controls</h4>
+                            
+                            <!-- Noise Reduction Settings -->
+                            <div id="denoise-controls" style="{{ 'display: block;' if user_settings.image_enhancement.denoise_enabled else 'display: none;' }}">
+                                <div class="field">
+                                    <label class="label">Noise Reduction Strength</label>
+                                    <div class="field has-addons">
+                                        <div class="control is-expanded">
+                                            <input class="input" type="range" id="denoise-strength" min="1" max="10" value="{{ user_settings.image_enhancement.denoise_strength }}" oninput="updateRangeValue('denoise-strength', 'denoise-strength-value')">
+                                        </div>
+                                        <div class="control">
+                                            <span class="button is-static" id="denoise-strength-value">{{ user_settings.image_enhancement.denoise_strength }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="help">Higher values remove more noise but may reduce detail (1=light, 10=aggressive)</p>
+                                </div>
+                                
+                                <div class="field">
+                                    <label class="checkbox">
+                                        <input type="checkbox" id="denoise-fast-mode" {{ 'checked' if user_settings.image_enhancement.denoise_fast_mode else '' }}>
+                                        Fast Mode (lower quality, faster processing)
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Contrast Enhancement Settings -->
+                            <div id="contrast-controls" style="{{ 'display: block;' if user_settings.image_enhancement.contrast_enabled else 'display: none;' }}">
+                                <div class="field">
+                                    <label class="label">Contrast Clip Limit</label>
+                                    <div class="field has-addons">
+                                        <div class="control is-expanded">
+                                            <input class="input" type="range" id="contrast-clip-limit" min="0.5" max="4.0" step="0.1" value="{{ user_settings.image_enhancement.contrast_clip_limit }}" oninput="updateRangeValue('contrast-clip-limit', 'contrast-clip-limit-value')">
+                                        </div>
+                                        <div class="control">
+                                            <span class="button is-static" id="contrast-clip-limit-value">{{ user_settings.image_enhancement.contrast_clip_limit }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="help">Controls contrast enhancement strength (0.5=subtle, 4.0=dramatic)</p>
+                                </div>
+                                
+                                <div class="field">
+                                    <label class="checkbox">
+                                        <input type="checkbox" id="contrast-preserve-tone" {{ 'checked' if user_settings.image_enhancement.contrast_preserve_tone else '' }}>
+                                        Preserve Natural Tone Mapping
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Sharpening Settings -->
+                            <div id="sharpen-controls" style="{{ 'display: block;' if user_settings.image_enhancement.sharpen_enabled else 'display: none;' }}">
+                                <div class="field">
+                                    <label class="label">Sharpening Strength</label>
+                                    <div class="field has-addons">
+                                        <div class="control is-expanded">
+                                            <input class="input" type="range" id="sharpen-strength" min="0.1" max="1.0" step="0.05" value="{{ user_settings.image_enhancement.sharpen_strength }}" oninput="updateRangeValue('sharpen-strength', 'sharpen-strength-value')">
+                                        </div>
+                                        <div class="control">
+                                            <span class="button is-static" id="sharpen-strength-value">{{ user_settings.image_enhancement.sharpen_strength }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="help">Controls edge enhancement strength (0.1=subtle, 1.0=strong)</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Color Correction Settings -->
+                            <div id="color-controls" style="{{ 'display: block;' if user_settings.image_enhancement.color_correction_enabled else 'display: none;' }}">
+                                <div class="field">
+                                    <label class="checkbox">
+                                        <input type="checkbox" id="color-white-balance" {{ 'checked' if user_settings.image_enhancement.color_white_balance else '' }}>
+                                        Auto White Balance Correction
+                                    </label>
+                                </div>
+                                
+                                <div class="field">
+                                    <label class="label">Color Saturation</label>
+                                    <div class="field has-addons">
+                                        <div class="control is-expanded">
+                                            <input class="input" type="range" id="color-saturation-factor" min="0.5" max="2.0" step="0.1" value="{{ user_settings.image_enhancement.color_saturation_factor }}" oninput="updateRangeValue('color-saturation-factor', 'color-saturation-factor-value')">
+                                        </div>
+                                        <div class="control">
+                                            <span class="button is-static" id="color-saturation-factor-value">{{ user_settings.image_enhancement.color_saturation_factor }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="help">Adjusts color intensity (0.5=muted, 1.0=natural, 2.0=vivid)</p>
+                                </div>
+                                
+                                <div class="field">
+                                    <label class="label">Color Temperature Adjustment</label>
+                                    <div class="field has-addons">
+                                        <div class="control is-expanded">
+                                            <input class="input" type="range" id="color-temperature-adjustment" min="-1.0" max="1.0" step="0.1" value="{{ user_settings.image_enhancement.color_temperature_adjustment }}" oninput="updateRangeValue('color-temperature-adjustment', 'color-temperature-adjustment-value')">
+                                        </div>
+                                        <div class="control">
+                                            <span class="button is-static" id="color-temperature-adjustment-value">{{ user_settings.image_enhancement.color_temperature_adjustment }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="help">Shifts color temperature (-1.0=cooler/blue, 0=neutral, 1.0=warmer/orange)</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Camera Settings -->
+                            <div id="camera-controls" style="{{ 'display: block;' if user_settings.image_enhancement.camera_optimal_settings else 'display: none;' }}">
+                                <div class="field">
+                                    <label class="label">Camera Exposure Time (microseconds)</label>
+                                    <div class="field has-addons">
+                                        <div class="control is-expanded">
+                                            <input class="input" type="range" id="camera-exposure-time" min="1000" max="100000" step="1000" value="{{ user_settings.image_enhancement.camera_exposure_time }}" oninput="updateRangeValue('camera-exposure-time', 'camera-exposure-time-value')">
+                                        </div>
+                                        <div class="control">
+                                            <span class="button is-static" id="camera-exposure-time-value">{{ user_settings.image_enhancement.camera_exposure_time }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="help">Controls exposure duration (1000=fast, 100000=slow)</p>
+                                </div>
+                                
+                                <div class="field">
+                                    <label class="label">Analog Gain</label>
+                                    <div class="field has-addons">
+                                        <div class="control is-expanded">
+                                            <input class="input" type="range" id="camera-analog-gain" min="1.0" max="16.0" step="0.1" value="{{ user_settings.image_enhancement.camera_analog_gain }}" oninput="updateRangeValue('camera-analog-gain', 'camera-analog-gain-value')">
+                                        </div>
+                                        <div class="control">
+                                            <span class="button is-static" id="camera-analog-gain-value">{{ user_settings.image_enhancement.camera_analog_gain }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="help">ISO sensitivity (1.0=low noise, 16.0=high sensitivity)</p>
+                                </div>
+                                
+                                <div class="field">
+                                    <label class="label">Auto White Balance Mode</label>
+                                    <div class="control">
+                                        <div class="select">
+                                            <select id="camera-awb-mode">
+                                                <option value="auto" {{ 'selected' if user_settings.image_enhancement.camera_awb_mode == 'auto' else '' }}>Auto</option>
+                                                <option value="sunlight" {{ 'selected' if user_settings.image_enhancement.camera_awb_mode == 'sunlight' else '' }}>Sunlight</option>
+                                                <option value="cloudy" {{ 'selected' if user_settings.image_enhancement.camera_awb_mode == 'cloudy' else '' }}>Cloudy</option>
+                                                <option value="shade" {{ 'selected' if user_settings.image_enhancement.camera_awb_mode == 'shade' else '' }}>Shade</option>
+                                                <option value="tungsten" {{ 'selected' if user_settings.image_enhancement.camera_awb_mode == 'tungsten' else '' }}>Tungsten</option>
+                                                <option value="fluorescent" {{ 'selected' if user_settings.image_enhancement.camera_awb_mode == 'fluorescent' else '' }}>Fluorescent</option>
+                                                <option value="flash" {{ 'selected' if user_settings.image_enhancement.camera_awb_mode == 'flash' else '' }}>Flash</option>
+                                                <option value="horizon" {{ 'selected' if user_settings.image_enhancement.camera_awb_mode == 'horizon' else '' }}>Horizon</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="field">
+                                    <label class="label">Camera Sharpness</label>
+                                    <div class="field has-addons">
+                                        <div class="control is-expanded">
+                                            <input class="input" type="range" id="camera-sharpness" min="0.0" max="2.0" step="0.1" value="{{ user_settings.image_enhancement.camera_sharpness }}" oninput="updateRangeValue('camera-sharpness', 'camera-sharpness-value')">
+                                        </div>
+                                        <div class="control">
+                                            <span class="button is-static" id="camera-sharpness-value">{{ user_settings.image_enhancement.camera_sharpness }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="help">Camera-level sharpness (0.0=soft, 1.0=normal, 2.0=sharp)</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Experimental HDR Settings -->
+                            <div id="hdr-controls" style="{{ 'display: block;' if user_settings.image_enhancement.experimental_hdr_enabled else 'display: none;' }}">
+                                <div class="field">
+                                    <label class="label">HDR Exposure Times (microseconds)</label>
+                                    <div class="field-body">
+                                        <div class="field">
+                                            <label class="label is-small">Low</label>
+                                            <div class="control">
+                                                <input class="input is-small" type="number" id="hdr-exposure-low" value="{{ user_settings.image_enhancement.experimental_hdr_exposure_times[0] }}" min="1000" max="50000">
+                                            </div>
+                                        </div>
+                                        <div class="field">
+                                            <label class="label is-small">Medium</label>
+                                            <div class="control">
+                                                <input class="input is-small" type="number" id="hdr-exposure-med" value="{{ user_settings.image_enhancement.experimental_hdr_exposure_times[1] }}" min="1000" max="50000">
+                                            </div>
+                                        </div>
+                                        <div class="field">
+                                            <label class="label is-small">High</label>
+                                            <div class="control">
+                                                <input class="input is-small" type="number" id="hdr-exposure-high" value="{{ user_settings.image_enhancement.experimental_hdr_exposure_times[2] }}" min="1000" max="50000">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="field">
+                                    <label class="label">HDR Gamma Correction</label>
+                                    <div class="field has-addons">
+                                        <div class="control is-expanded">
+                                            <input class="input" type="range" id="hdr-gamma" min="1.0" max="3.0" step="0.1" value="{{ user_settings.image_enhancement.experimental_hdr_gamma }}" oninput="updateRangeValue('hdr-gamma', 'hdr-gamma-value')">
+                                        </div>
+                                        <div class="control">
+                                            <span class="button is-static" id="hdr-gamma-value">{{ user_settings.image_enhancement.experimental_hdr_gamma }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="help">Gamma curve for HDR tone mapping (1.0=linear, 2.2=standard, 3.0=high contrast)</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Experimental Stacking Settings -->
+                            <div id="stacking-controls" style="{{ 'display: block;' if user_settings.image_enhancement.experimental_stacking_enabled else 'display: none;' }}">
+                                <div class="field">
+                                    <label class="label">Number of Images to Stack</label>
+                                    <div class="field has-addons">
+                                        <div class="control is-expanded">
+                                            <input class="input" type="range" id="stacking-num-images" min="3" max="10" value="{{ user_settings.image_enhancement.experimental_stacking_num_images }}" oninput="updateRangeValue('stacking-num-images', 'stacking-num-images-value')">
+                                        </div>
+                                        <div class="control">
+                                            <span class="button is-static" id="stacking-num-images-value">{{ user_settings.image_enhancement.experimental_stacking_num_images }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="help">More images = better noise reduction but slower processing</p>
+                                </div>
+                                
+                                <div class="field">
+                                    <label class="label">Alignment Threshold</label>
+                                    <div class="field has-addons">
+                                        <div class="control is-expanded">
+                                            <input class="input" type="range" id="stacking-alignment-threshold" min="0.3" max="0.9" step="0.05" value="{{ user_settings.image_enhancement.experimental_stacking_alignment_threshold }}" oninput="updateRangeValue('stacking-alignment-threshold', 'stacking-alignment-threshold-value')">
+                                        </div>
+                                        <div class="control">
+                                            <span class="button is-static" id="stacking-alignment-threshold-value">{{ user_settings.image_enhancement.experimental_stacking_alignment_threshold }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="help">Minimum similarity for image alignment (0.3=loose, 0.9=strict)</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -159,6 +384,43 @@
                                 </select>
                             </div>
                         </div>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label">Languages</label>
+                        <div class="control">
+                            <div class="select is-multiple">
+                                <select multiple id="ocr-languages">
+                                    <option value="en" {{ 'selected' if 'en' in user_settings.ocr.languages else '' }}>English (EN)</option>
+                                    <option value="uk" {{ 'selected' if 'uk' in user_settings.ocr.languages else '' }}>Ukrainian (UA)</option>
+                                    <option value="de" {{ 'selected' if 'de' in user_settings.ocr.languages else '' }}>German (DE)</option>
+                                    <option value="fr" {{ 'selected' if 'fr' in user_settings.ocr.languages else '' }}>French (FR)</option>
+                                    <option value="es" {{ 'selected' if 'es' in user_settings.ocr.languages else '' }}>Spanish (ES)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="help">Hold Ctrl/Cmd to select multiple languages</p>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label">Detail Level</label>
+                        <div class="control">
+                            <div class="select">
+                                <select id="ocr-detail-level">
+                                    <option value="0" {{ 'selected' if user_settings.ocr.detail_level == 0 else '' }}>Text Only</option>
+                                    <option value="1" {{ 'selected' if user_settings.ocr.detail_level == 1 else '' }}>Text + Bounding Boxes</option>
+                                    <option value="2" {{ 'selected' if user_settings.ocr.detail_level == 2 else '' }}>Text + Bounding Boxes + Confidence</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="help">Higher detail levels provide more information but slower processing</p>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="checkbox">
+                            <input type="checkbox" id="ocr-paragraph-mode" {{ 'checked' if user_settings.ocr.paragraph_mode else '' }}>
+                            Paragraph Mode (group text into paragraphs)
+                        </label>
                     </div>
                     
                     <div class="field is-grouped">

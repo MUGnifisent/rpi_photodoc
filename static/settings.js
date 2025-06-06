@@ -35,6 +35,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Advanced settings visibility toggles
+    setupAdvancedToggle('denoise-enabled', 'denoise-controls');
+    setupAdvancedToggle('contrast-enabled', 'contrast-controls');
+    setupAdvancedToggle('sharpen-enabled', 'sharpen-controls');
+    setupAdvancedToggle('color-correction-enabled', 'color-controls');
+    setupAdvancedToggle('camera-optimal-settings', 'camera-controls');
+    setupAdvancedToggle('experimental-hdr-enabled', 'hdr-controls');
+    setupAdvancedToggle('experimental-stacking-enabled', 'stacking-controls');
+    
     // Experimental features mutual exclusion
     const hdrEnabled = document.getElementById('experimental-hdr-enabled');
     const stackingEnabled = document.getElementById('experimental-stacking-enabled');
@@ -102,16 +111,42 @@ function saveUserSettings(category) {
         settings = {
             enabled: document.getElementById('enhancement-enabled').checked,
             denoise_enabled: document.getElementById('denoise-enabled').checked,
+            denoise_strength: parseInt(document.getElementById('denoise-strength').value),
+            denoise_fast_mode: document.getElementById('denoise-fast-mode').checked,
             contrast_enabled: document.getElementById('contrast-enabled').checked,
+            contrast_clip_limit: parseFloat(document.getElementById('contrast-clip-limit').value),
+            contrast_preserve_tone: document.getElementById('contrast-preserve-tone').checked,
             sharpen_enabled: document.getElementById('sharpen-enabled').checked,
+            sharpen_strength: parseFloat(document.getElementById('sharpen-strength').value),
             color_correction_enabled: document.getElementById('color-correction-enabled').checked,
+            color_white_balance: document.getElementById('color-white-balance').checked,
+            color_saturation_factor: parseFloat(document.getElementById('color-saturation-factor').value),
+            color_temperature_adjustment: parseFloat(document.getElementById('color-temperature-adjustment').value),
             camera_optimal_settings: document.getElementById('camera-optimal-settings').checked,
+            camera_exposure_time: parseInt(document.getElementById('camera-exposure-time').value),
+            camera_analog_gain: parseFloat(document.getElementById('camera-analog-gain').value),
+            camera_awb_mode: document.getElementById('camera-awb-mode').value,
+            camera_sharpness: parseFloat(document.getElementById('camera-sharpness').value),
             experimental_hdr_enabled: document.getElementById('experimental-hdr-enabled').checked,
-            experimental_stacking_enabled: document.getElementById('experimental-stacking-enabled').checked
+            experimental_hdr_exposure_times: [
+                parseInt(document.getElementById('hdr-exposure-low').value),
+                parseInt(document.getElementById('hdr-exposure-med').value),
+                parseInt(document.getElementById('hdr-exposure-high').value)
+            ],
+            experimental_hdr_gamma: parseFloat(document.getElementById('hdr-gamma').value),
+            experimental_stacking_enabled: document.getElementById('experimental-stacking-enabled').checked,
+            experimental_stacking_num_images: parseInt(document.getElementById('stacking-num-images').value),
+            experimental_stacking_alignment_threshold: parseFloat(document.getElementById('stacking-alignment-threshold').value)
         };
     } else if (category === 'ocr') {
+        const languageSelect = document.getElementById('ocr-languages');
+        const selectedLanguages = Array.from(languageSelect.selectedOptions).map(option => option.value);
+        
         settings = {
-            preferred_mode: document.getElementById('ocr-preferred-mode').value
+            preferred_mode: document.getElementById('ocr-preferred-mode').value,
+            languages: selectedLanguages,
+            detail_level: parseInt(document.getElementById('ocr-detail-level').value),
+            paragraph_mode: document.getElementById('ocr-paragraph-mode').checked
         };
     } else if (category === 'ui') {
         settings = {
@@ -228,7 +263,24 @@ function saveSystemSettings() {
     });
 }
 
-// Show advanced settings (placeholder for future implementation)
-function showAdvancedSettings() {
-    showNotification('Advanced settings will be available in a future update', 'info');
+// Helper function to setup advanced settings toggles
+function setupAdvancedToggle(checkboxId, controlsId) {
+    const checkbox = document.getElementById(checkboxId);
+    const controls = document.getElementById(controlsId);
+    
+    if (checkbox && controls) {
+        checkbox.addEventListener('change', function() {
+            controls.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+}
+
+// Update range input value display
+function updateRangeValue(rangeId, displayId) {
+    const range = document.getElementById(rangeId);
+    const display = document.getElementById(displayId);
+    
+    if (range && display) {
+        display.textContent = range.value;
+    }
 }

@@ -11,6 +11,7 @@ import easyocr
 # import cv2 # cv2 is imported in app.py if needed for specific image operations there, not directly in routes.
 from models import User
 from settings_routes import get_prompt, get_llm_model_name, get_ocr_mode, get_ocr_server_url, DEFAULT_PROMPT_KEYS
+from user_settings import get_ocr_settings
 from photo_manager import (
     create_photo,
     load_all_photos_for_user,
@@ -41,24 +42,43 @@ logger.info(f"Camera available at import: {rpi_camera_instance.is_available()}")
 
 main_bp = Blueprint('main', __name__)
 
-try:
-    reader = easyocr.Reader(['uk', 'en'])
-except Exception as e:
-    print(f"Error initializing EasyOCR reader: {e}")
-    reader = None
+# OCR readers cache - will be initialized per user language preference
+ocr_readers = {}
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
-def perform_ocr_local(filepath):
-    """Perform OCR using local EasyOCR"""
-    if not reader:
-        logger.error("EasyOCR reader not initialized. OCR cannot be performed.")
-        raise Exception("EasyOCR reader not initialized.")
+def get_or_create_ocr_reader(languages):
+    """Get or create an EasyOCR reader for the specified languages"""
+    languages_key = tuple(sorted(languages))
+    
+    if languages_key not in ocr_readers:
+        try:
+            logger.info(f"Initializing EasyOCR reader for languages: {languages}")
+            ocr_readers[languages_key] = easyocr.Reader(languages)
+        except Exception as e:
+            logger.error(f"Error initializing EasyOCR reader for {languages}: {e}")
+            raise Exception(f"EasyOCR reader initialization failed: {e}")
+    
+    return ocr_readers[languages_key]
+
+def perform_ocr_local(filepath, user_ocr_settings):
+    """Perform OCR using local EasyOCR with user-specific settings"""
+    languages = user_ocr_settings.get('languages', ['uk', 'en'])
+    detail_level = user_ocr_settings.get('detail_level', 0)
+    paragraph_mode = user_ocr_settings.get('paragraph_mode', True)
+    
     try:
-        result = reader.readtext(filepath, detail=0, paragraph=True, workers=0)
-        return "\n".join(result)
+        reader = get_or_create_ocr_reader(languages)
+        result = reader.readtext(filepath, detail=detail_level, paragraph=paragraph_mode, workers=0)
+        
+        if detail_level > 0:
+            # Return detailed results with bounding boxes and confidence
+            return result
+        else:
+            # Return just the text
+            return "\n".join(result)
     except Exception as e:
         logger.error(f"Local OCR processing failed for {filepath}: {e}")
         raise
@@ -88,16 +108,28 @@ def perform_ocr_remote(filepath):
         logger.error(f"Remote OCR processing failed for {filepath}: {e}")
         raise
 
-def perform_ocr(filepath):
-    """Perform OCR using either local or remote method based on settings"""
-    ocr_mode = get_ocr_mode()
+def perform_ocr(filepath, user_id=None):
+    """Perform OCR using either local or remote method based on user and system settings"""
+    # Get user OCR settings if user is provided
+    if user_id and current_user.is_authenticated:
+        user_ocr_settings = get_ocr_settings(user_id)
+        preferred_mode = user_ocr_settings.get('preferred_mode', 'local')
+    else:
+        user_ocr_settings = {'languages': ['uk', 'en'], 'detail_level': 0, 'paragraph_mode': True}
+        preferred_mode = None
+    
+    # Determine OCR mode: user preference takes priority, fall back to system setting
+    if preferred_mode:
+        ocr_mode = preferred_mode
+    else:
+        ocr_mode = get_ocr_mode()
     
     if ocr_mode == 'remote':
         logger.info(f"Using remote OCR for {filepath}")
         return perform_ocr_remote(filepath)
     else:
-        logger.info(f"Using local OCR for {filepath}")
-        return perform_ocr_local(filepath)
+        logger.info(f"Using local OCR for {filepath} with settings: {user_ocr_settings}")
+        return perform_ocr_local(filepath, user_ocr_settings)
 
 def call_llm(prompt_text_key, text_to_process, custom_prompt_text=None):
     from settings_routes import load_system_settings
@@ -429,7 +461,7 @@ def capture_rpi_photo():
         ai_cleaned_text = "Error during processing or no text found."
 
         try:
-            original_ocr_text = perform_ocr(filepath)
+            original_ocr_text = perform_ocr(filepath, current_user.id if current_user.is_authenticated else None)
             logger.info(f"Step 2 SUCCESS: OCR completed. Text length: {len(original_ocr_text if original_ocr_text else '')}")
             
             if original_ocr_text:
@@ -558,7 +590,7 @@ def process_upload():
         try:
             ocr_mode = get_ocr_mode()
             logger.info(f"Performing OCR on {filepath} using {ocr_mode} mode")
-            original_ocr_text = perform_ocr(filepath) # This can raise an exception
+            original_ocr_text = perform_ocr(filepath, current_user.id if current_user.is_authenticated else None) # This can raise an exception
             logger.info(f"OCR for {filepath}. Length: {len(original_ocr_text if original_ocr_text else [])}")
 
             if original_ocr_text and original_ocr_text.strip():

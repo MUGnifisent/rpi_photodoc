@@ -34,3 +34,89 @@
     font-size: 0.85rem;
     color: #bbb;
 }
+
+/* Advanced settings styling */
+.advanced-controls {
+    margin-left: 1rem;
+    padding: 1rem;
+    background-color: #1e1e1e;
+    border-left: 3px solid #3273dc;
+    border-radius: 0 6px 6px 0;
+    margin-top: 0.5rem;
+}
+
+.advanced-controls .title.is-6 {
+    margin-bottom: 1rem;
+    color: #3273dc;
+}
+
+/* Range input styling */
+input[type="range"] {
+    width: 100%;
+    height: 6px;
+    background: #363636;
+    border-radius: 3px;
+    outline: none;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+input[type="range"]:hover {
+    opacity: 1;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #3273dc;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #3273dc;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+}
+
+/* HDR exposure time controls */
+.field-body {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.field-body .field {
+    flex: 1;
+}
+
+/* Settings section spacing */
+#denoise-controls,
+#contrast-controls,
+#sharpen-controls,
+#color-controls,
+#camera-controls,
+#hdr-controls,
+#stacking-controls {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #1e1e1e;
+    border-radius: 6px;
+    border: 1px solid #2c2c2c;
+}
+
+/* Multi-select styling */
+.select.is-multiple select {
+    height: auto;
+    min-height: 80px;
+}
+
+/* Help text styling */
+.help {
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 0.25rem;
+}
