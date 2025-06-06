@@ -155,7 +155,11 @@
     text-align: left;
 }
 
-/* button-main styles are now in main style.css */
+/* Upload page button overrides - make button-main full width */
+.upload-page-container .button-main {
+    width: 100% !important;
+    max-width: 100% !important;
+}
 
 .file-input {
     display: none;
