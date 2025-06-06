@@ -392,9 +392,9 @@ def capture_rpi_photo():
         os.makedirs(upload_folder)
         logger.info(f"Created upload folder: {upload_folder}")
 
-    original_filename = f"rpi_capture_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
-    unique_filename = f"{uuid.uuid4().hex}_{original_filename}"
-    filepath = os.path.join(upload_folder, unique_filename)
+    timestamp = datetime.now()
+    filename = f"rpi_capture_{timestamp.strftime('%Y-%m-%d_%H-%M-%S')}.jpg"
+    filepath = os.path.join(upload_folder, filename)
 
     try:
         # Step 0.5: Apply optimal camera settings if enabled
@@ -497,7 +497,7 @@ def capture_rpi_photo():
         # Step 4: Create Photo record
         logger.info(f"Step 4: Creating photo record in database")
         try:
-            new_photo = create_photo(current_user.id, unique_filename, original_ocr_text, ai_cleaned_text)
+            new_photo = create_photo(current_user.id, filename, original_ocr_text, ai_cleaned_text)
             if not new_photo:
                 logger.error(f"Step 4 FAILED: create_photo returned None")
                 return jsonify({'success': False, 'error': 'Failed to save photo metadata to database.'}), 500
@@ -510,13 +510,13 @@ def capture_rpi_photo():
 
         # All steps successful!
         logger.info("=== Photo capture process completed successfully ===")
-        flash(f'Photo "{original_filename}" captured and processed successfully!', 'success')
+        flash(f'Photo "{filename}" captured and processed successfully!', 'success')
         
         return jsonify({
             'success': True,
             'message': 'Photo captured and processed.',
             'photo_id': new_photo['id'],
-            'filename': unique_filename,
+            'filename': filename,
             'redirect_url': url_for('main.gallery_view')
         }), 200
 
