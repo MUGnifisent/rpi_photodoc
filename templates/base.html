@@ -47,7 +47,7 @@
             <div class="navbar-item">
                 <div class="buttons">
                     {% if current_user.is_authenticated %}
-                        <span class="navbar-item navbar-user-greeting has-text-grey-light">Hi, <strong>{{ current_user.username }}</strong>!</span>
+                        <span class="navbar-user-greeting has-text-grey-light">Hi, <strong>{{ current_user.username }}</strong>!</span>
                         <a href="{{ url_for('main.logout') }}" class="button-main is-small">
                             <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
                             <span>Logout</span>

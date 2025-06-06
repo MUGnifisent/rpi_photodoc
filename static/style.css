@@ -169,8 +169,9 @@ main[role="main"] {
     color: #b0b0b0 !important; /* Match has-text-grey-light, ensure override */
     background-color: transparent !important;
     pointer-events: none; /* Make it non-clickable */
-    padding-left: 0.75rem; 
-    padding-right: 0.25rem; /* Less padding on the right before button */
+    padding-right: 0.75rem; /* Spacing before button */
+    line-height: 1.5;
+    display: inline-block;
 }
 
 .notification.is-light {
