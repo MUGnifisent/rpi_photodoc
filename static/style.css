@@ -264,6 +264,25 @@ a:hover {
     box-shadow: 0 2px 12px 0 rgba(255,136,0,0.18);
 }
 
+/* Button size modifiers for button-main */
+.button-main.is-small {
+    font-size: 0.9em;
+    min-height: 2.2em;
+    padding: 0.6em 0;
+}
+
+.button-main.is-medium {
+    font-size: 1.2em;
+    min-height: 4em;
+    padding: 1em 0;
+}
+
+.button-main.is-large {
+    font-size: 1.4em;
+    min-height: 4.5em;
+    padding: 1.2em 0;
+}
+
 /* Remove/override any previous .button-main or .button.upload-flat definitions in page-level styles */
 
 /* Radio button styling for better visibility */
