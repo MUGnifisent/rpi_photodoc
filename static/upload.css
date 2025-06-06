@@ -31,18 +31,13 @@
 .camera-feed-container {
     position: relative;
     display: none;
-    background: #232323;
-    border-radius: 16px;
-    border: 1.5px solid #333;
-    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.10);
     margin: 0 auto 1.5em auto;
-    padding: 0.25em;
     width: fit-content;
     max-width: calc(100% - 2em);
 }
 
 .camera-feed-container.visible {
-    display: block;
+    display: inline-block;
 }
 
 .camera-feed {
@@ -53,8 +48,9 @@
     height: auto;
     border-radius: 12px;
     object-fit: contain;
-    background: #181818;
-    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+    background: #232323;
+    border: 1.5px solid #333;
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.10);
     transition: transform 0.3s;
 }
 
