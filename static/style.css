@@ -33,14 +33,12 @@ main[role="main"] {
 
 .button.is-light {
     background-color: #363636 !important;
-    border-color: #4a4a4a !important;
+    border-color: #363636 !important;
     color: #f5f5f5 !important;
-    font-weight: 500 !important;
-    border-radius: 6px !important;
 }
 .button.is-light:hover, .button.is-light:focus {
     background-color: #4a4a4a !important;
-    border-color: #5a5a5a !important;
+    border-color: #4a4a4a !important;
     color: #f5f5f5 !important;
 }
 
@@ -237,69 +235,24 @@ a:hover {
     color: #ff8c1a;
 }
 
-/* Unified button style for all major actions */
+/* Button-main color styling only (base properties inherited from unified system) */
 .button-main {
-    background: #ff8800;
-    color: #fff;
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 1.08em;
-    padding: 0.85em 0;
-    width: 100%;
-    max-width: 100%;
-    min-width: 200px;
-    min-height: 3.5em;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.7em;
-    box-shadow: 0 2px 8px 0 rgba(255,136,0,0.10);
-    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-    margin-bottom: 1em;
-    letter-spacing: 0.01em;
+    background-color: #ff8800 !important;
+    color: #ffffff !important;
+    border-color: #ff8800 !important;
+    box-shadow: 0 2px 8px 0 rgba(255,136,0,0.10) !important;
 }
 .button-main:hover, .button-main:focus {
-    background: #e65c00;
-    color: #fff;
-    box-shadow: 0 2px 12px 0 rgba(255,136,0,0.18);
+    background-color: #e65c00 !important;
+    color: #ffffff !important;
+    border-color: #e65c00 !important;
+    box-shadow: 0 2px 12px 0 rgba(255,136,0,0.18) !important;
 }
 
-/* Button size modifiers for button-main */
-.button-main.is-small {
-    font-size: 0.9em;
-    min-height: 2.2em;
-    padding: 0.6em 0;
-}
-
-/* Navbar button overrides - make them compact and inline */
-.navbar .button-main {
-    width: auto;
-    min-width: auto;
-    margin-bottom: 0;
-    padding: 0.5em 1em;
-    margin-right: 0.5rem;
-}
-
-.navbar .button.is-light {
-    width: auto;
-    min-width: auto;
-    margin-bottom: 0;
-    padding: 0.5em 1em;
-    margin-right: 0.5rem;
-}
-
-.button-main.is-medium {
-    font-size: 1.2em;
-    min-height: 4em;
-    padding: 1em 0;
-}
-
-.button-main.is-large {
-    font-size: 1.4em;
-    min-height: 4.5em;
-    padding: 1.2em 0;
+/* Navbar button overrides - spacing only (sizes handled by unified system) */
+.navbar .button, .navbar .button-main {
+    margin-right: 0.5rem !important;
+    margin-bottom: 0 !important;
 }
 
 /* Remove/override any previous .button-main or .button.upload-flat definitions in page-level styles */
@@ -388,40 +341,69 @@ a:hover {
     font-weight: 600;
 }
 
-/* Production-ready button system standardization */
+/* UNIFIED BUTTON SYSTEM - COMPLETE OVERRIDE */
 
-/* Ensure all buttons have consistent base properties */
-.button {
-    font-weight: 500;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-    font-family: inherit;
-    line-height: 1.5;
+/* Base button styling - applies to ALL buttons */
+.button, .button-main {
+    /* Size and spacing */
+    font-size: 1rem !important;
+    padding: 0.6em 1.2em !important;
+    height: auto !important;
+    min-height: 2.5rem !important;
+    min-width: auto !important;
+    width: auto !important;
+    
+    /* Typography */
+    font-weight: 500 !important;
+    font-family: inherit !important;
+    line-height: 1.4 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    
+    /* Visual styling */
+    border-radius: 8px !important;
+    border: 1px solid transparent !important;
+    
+    /* Layout */
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5em !important;
+    vertical-align: middle !important;
+    
+    /* Behavior */
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    box-sizing: border-box !important;
 }
 
-/* Size modifiers should work for all button types */
-.button.is-small {
-    font-size: 0.85rem;
-    padding: 0.4em 0.8em;
-    height: auto;
-    min-height: 2rem;
+/* Full-width buttons for forms */
+.button-main {
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
-.button.is-medium {
-    font-size: 1.1rem;
-    padding: 0.7em 1.2em;
-    height: auto;
-    min-height: 2.8rem;
+/* Size modifiers - work for ALL button types */
+.button.is-small, .button-main.is-small {
+    font-size: 0.875rem !important;
+    padding: 0.5em 1em !important;
+    min-height: 2rem !important;
 }
 
-.button.is-large {
-    font-size: 1.3rem;
-    padding: 0.9em 1.5em;
-    height: auto;
-    min-height: 3.2rem;
+.button.is-medium, .button-main.is-medium {
+    font-size: 1.125rem !important;
+    padding: 0.75em 1.5em !important;
+    min-height: 3rem !important;
 }
 
-/* Enhanced button type styling */
+.button.is-large, .button-main.is-large {
+    font-size: 1.25rem !important;
+    padding: 0.875em 1.75em !important;
+    min-height: 3.5rem !important;
+}
+
+/* Color-only button type styling (base properties from unified system) */
 .button.is-danger {
     background-color: #dc3545 !important;
     border-color: #dc3545 !important;
