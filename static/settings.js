@@ -34,6 +34,37 @@ document.addEventListener('DOMContentLoaded', function() {
             enhancementOptions.style.display = this.checked ? 'block' : 'none';
         });
     }
+    
+    // Experimental features mutual exclusion
+    const hdrEnabled = document.getElementById('experimental-hdr-enabled');
+    const stackingEnabled = document.getElementById('experimental-stacking-enabled');
+    
+    if (hdrEnabled && stackingEnabled) {
+        hdrEnabled.addEventListener('change', function() {
+            if (this.checked) {
+                stackingEnabled.checked = false;
+                stackingEnabled.disabled = true;
+            } else {
+                stackingEnabled.disabled = false;
+            }
+        });
+        
+        stackingEnabled.addEventListener('change', function() {
+            if (this.checked) {
+                hdrEnabled.checked = false;
+                hdrEnabled.disabled = true;
+            } else {
+                hdrEnabled.disabled = false;
+            }
+        });
+        
+        // Set initial state
+        if (hdrEnabled.checked) {
+            stackingEnabled.disabled = true;
+        } else if (stackingEnabled.checked) {
+            hdrEnabled.disabled = true;
+        }
+    }
 });
 
 // Show notification
@@ -74,7 +105,9 @@ function saveUserSettings(category) {
             contrast_enabled: document.getElementById('contrast-enabled').checked,
             sharpen_enabled: document.getElementById('sharpen-enabled').checked,
             color_correction_enabled: document.getElementById('color-correction-enabled').checked,
-            camera_optimal_settings: document.getElementById('camera-optimal-settings').checked
+            camera_optimal_settings: document.getElementById('camera-optimal-settings').checked,
+            experimental_hdr_enabled: document.getElementById('experimental-hdr-enabled').checked,
+            experimental_stacking_enabled: document.getElementById('experimental-stacking-enabled').checked
         };
     } else if (category === 'ocr') {
         settings = {

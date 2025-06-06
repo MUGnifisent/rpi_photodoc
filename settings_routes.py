@@ -249,3 +249,47 @@ def get_user_settings_api(category):
     except Exception as e:
         logger.error(f"Error getting user settings for category {category}: {e}")
         return jsonify({'error': f'Error getting settings: {str(e)}'}), 500
+
+@settings_bp.route('/user/<category>', methods=['POST'])
+@login_required
+def update_user_settings_by_category(category):
+    """Update user settings for a specific category"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Validate category
+        valid_categories = ['image_enhancement', 'ocr', 'ui']
+        if category not in valid_categories:
+            return jsonify({'error': f'Invalid category. Must be one of: {valid_categories}'}), 400
+        
+        if set_user_settings_by_category(current_user.id, category, data):
+            logger.info(f"User settings updated for user {current_user.id}, category {category}")
+            return jsonify({'success': True, 'message': f'{category} settings updated successfully'})
+        else:
+            return jsonify({'error': 'Failed to save user settings'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error updating user settings for category {category}: {e}")
+        return jsonify({'error': f'Error updating settings: {str(e)}'}), 500
+
+@settings_bp.route('/user/<category>/reset', methods=['POST'])
+@login_required
+def reset_user_settings_by_category(category):
+    """Reset user settings for a specific category to defaults"""
+    try:
+        # Validate category
+        valid_categories = ['image_enhancement', 'ocr', 'ui']
+        if category not in valid_categories:
+            return jsonify({'error': f'Invalid category. Must be one of: {valid_categories}'}), 400
+        
+        if reset_user_settings_to_defaults(current_user.id, category):
+            logger.info(f"User settings reset to defaults for user {current_user.id}, category {category}")
+            return jsonify({'success': True, 'message': f'{category} settings reset to defaults'})
+        else:
+            return jsonify({'error': 'Failed to reset user settings'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error resetting user settings for category {category}: {e}")
+        return jsonify({'error': f'Error resetting settings: {str(e)}'}), 500

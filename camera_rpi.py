@@ -198,8 +198,8 @@ class RPiCamera:
                             logger.error(f"Failed to read image from {filepath}")
                             return False
                             
-                        # Rotate 90 degrees clockwise for portrait mode
-                        rotated_img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+                        # Rotate 90 degrees counter-clockwise for portrait mode (fixes upside-down issue)
+                        rotated_img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
                         
                         # Save the rotated image back to the same file
                         cv2.imwrite(filepath, rotated_img, [cv2.IMWRITE_JPEG_QUALITY, 95])

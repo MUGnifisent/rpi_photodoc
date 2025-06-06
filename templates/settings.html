@@ -93,6 +93,35 @@
                             </div>
                         </div>
                         
+                        <!-- Experimental Features -->
+                        <div class="field">
+                            <h4 class="title is-6">Experimental Features</h4>
+                            <div class="notification is-warning is-light">
+                                <strong>Warning:</strong> Experimental features may affect performance or quality. Use with caution.
+                            </div>
+                            
+                            <div class="columns">
+                                <div class="column">
+                                    <div class="field">
+                                        <label class="checkbox">
+                                            <input type="checkbox" id="experimental-hdr-enabled" {{ 'checked' if user_settings.image_enhancement.experimental_hdr_enabled else '' }}>
+                                            HDR (High Dynamic Range)
+                                        </label>
+                                        <p class="help">Captures multiple exposures for better lighting</p>
+                                    </div>
+                                </div>
+                                <div class="column">
+                                    <div class="field">
+                                        <label class="checkbox">
+                                            <input type="checkbox" id="experimental-stacking-enabled" {{ 'checked' if user_settings.image_enhancement.experimental_stacking_enabled else '' }}>
+                                            Image Stacking
+                                        </label>
+                                        <p class="help">Combines multiple shots to reduce noise</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="field">
                             <button class="button is-link is-small" type="button" onclick="showAdvancedSettings()">
                                 <span class="icon"><i class="fas fa-cogs"></i></span>

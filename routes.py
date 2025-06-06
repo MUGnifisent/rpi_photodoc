@@ -100,7 +100,9 @@ def perform_ocr(filepath):
         return perform_ocr_local(filepath)
 
 def call_llm(prompt_text_key, text_to_process, custom_prompt_text=None):
-    llm_url = current_app.config.get('LLM_SERVER_URL')
+    from settings_routes import load_system_settings
+    system_settings = load_system_settings()
+    llm_url = system_settings.get('llm_server_url')
     llm_model = get_llm_model_name() # Ensure this function exists and is imported from settings_routes
     if not llm_url:
         logger.error("LLM Server URL not configured.")
