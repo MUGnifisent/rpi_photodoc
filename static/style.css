@@ -271,6 +271,15 @@ a:hover {
     padding: 0.6em 0;
 }
 
+/* Navbar button overrides - make them compact and inline */
+.navbar .button-main {
+    width: auto;
+    min-width: auto;
+    margin-bottom: 0;
+    padding: 0.5em 1em;
+    margin-right: 0.5rem;
+}
+
 .button-main.is-medium {
     font-size: 1.2em;
     min-height: 4em;
