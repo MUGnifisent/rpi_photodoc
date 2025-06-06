@@ -19,17 +19,7 @@ main[role="main"] {
     padding-bottom: 2rem; /* Add some padding at the very bottom of the content */
 }
 
-.button.is-primary {
-    background-color: #ff8800 !important; /* Match button-main orange */
-    border-color: transparent !important;
-    color: #ffffff !important;
-    font-weight: bold !important;
-}
-
-.button.is-primary:hover, .button.is-primary:focus {
-    background-color: #e65c00 !important; /* Darker orange */
-    color: #ffffff !important;
-}
+/* Removed redundant .button.is-primary styles - using button-main instead */
 
 .button.is-link {
     background-color: #ff7700; /* Slightly lighter orange for secondary actions */

@@ -48,12 +48,12 @@
                 <div class="buttons">
                     {% if current_user.is_authenticated %}
                         <span class="navbar-item navbar-user-greeting has-text-grey-light">Hi, <strong>{{ current_user.username }}</strong>!</span>
-                        <a href="{{ url_for('main.logout') }}" class="button is-primary">
+                        <a href="{{ url_for('main.logout') }}" class="button-main">
                             <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
                             <span>Logout</span>
                         </a>
                     {% else %}
-                        <a href="{{ url_for('main.register') }}" class="button is-primary">
+                        <a href="{{ url_for('main.register') }}" class="button-main">
                             <strong>Sign up</strong>
                         </a>
                         <a href="{{ url_for('main.login') }}" class="button is-light">
