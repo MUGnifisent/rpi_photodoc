@@ -201,9 +201,9 @@
     text-align: center;
     font-size: 1.08em;
     margin-bottom: 1.2em;
-    margin-top: 0;
+    margin-top: 1.2em;
     box-sizing: border-box;
-    min-height: 2.8em;
+    min-height: 3.5em;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -269,4 +269,59 @@
 
 .camera-frozen-indicator.active {
     display: block;
+}
+
+/* Upload form loading states */
+.upload-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(18, 18, 18, 0.9);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.upload-loading-overlay.active {
+    display: flex;
+}
+
+.upload-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid #333;
+    border-top-color: #ff6600;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1.5rem;
+}
+
+.upload-loading-text {
+    color: #ff6600;
+    font-size: 1.2rem;
+    font-weight: 500;
+    text-align: center;
+}
+
+.button-main.loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.button-main.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid transparent;
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
 }

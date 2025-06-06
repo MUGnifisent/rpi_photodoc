@@ -38,8 +38,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayNotification('Please select a file to upload.', 'warning', uploadFormErrorPlaceholder, true);
                 return;
             }
-            uploadSubmitButton.classList.add('is-loading');
+            // Show loading states
+            uploadSubmitButton.classList.add('loading');
             uploadSubmitButton.disabled = true;
+            
+            const loadingOverlay = document.getElementById('upload-loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.add('active');
+            }
         });
     }
 

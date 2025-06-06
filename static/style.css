@@ -37,7 +37,7 @@ main[role="main"] {
     color: #ffffff;
 }
 .button.is-link:hover, .button.is-link:focus {
-    background-color: #ff8c1a;
+    background-color: #e65c00; /* Consistent darker orange on hover */
     color: #ffffff;
 }
 
