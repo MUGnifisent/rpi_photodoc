@@ -38,9 +38,9 @@ main[role="main"] {
     border-radius: 8px !important;
 }
 .button.is-light:hover, .button.is-light:focus {
-    background-color: #4a4a4a !important;
-    border-color: #4a4a4a !important;
-    color: #f5f5f5 !important;
+    background-color: #ff6600 !important;
+    border-color: #ff6600 !important;
+    color: #ffffff !important;
 }
 
 .button.is-text:hover, .button.is-text:focus {
@@ -484,4 +484,20 @@ a:hover {
 .field .label {
     color: #e0e0e0;
     font-weight: 600;
+}
+
+/* Delete button styling for notifications */
+.delete {
+    background-color: #4a4a4a !important;
+    transition: background-color 0.2s ease;
+}
+.delete:hover, .delete:focus {
+    background-color: #ff6600 !important;
+}
+.delete::before, .delete::after {
+    background-color: #e0e0e0 !important;
+}
+.delete:hover::before, .delete:hover::after,
+.delete:focus::before, .delete:focus::after {
+    background-color: #ffffff !important;
 } 
