@@ -1,0 +1,127 @@
+@startuml
+!theme plain
+
+actor "Користувач" as User
+participant "Веб-інтерфейс" as Web
+participant "Маршрутизатор запитів" as Router
+participant "Система автентифікації" as Auth
+participant "Інтерфейс камери" as Camera
+participant "Менеджер завантажень" as Upload
+participant "Модуль покращення зображень" as Enhancement
+participant "Координатор OCR" as OCR
+participant "Координатор LLM" as LLM
+participant "Менеджер фотографій" as PhotoMgr
+participant "Менеджер документів" as DocMgr
+participant "База даних" as DB
+participant "Файлова система" as FS
+
+== Ініціалізація сесії ==
+User -> Web: відкрити сторінку завантаження
+Web -> Router: запит на сторінку
+Router -> Auth: перевірка автентифікації
+Auth -> Router: користувач автентифікований
+Router -> Camera: перевірка доступності камери
+Camera -> Router: статус камери
+Router -> Web: сторінка з налаштуваннями
+Web -> User: інтерфейс з опціями
+
+== Варіант А: Захоплення фото з камери ==
+User -> Web: натиснути "Захопити фото"
+Web -> Router: POST /capture_rpi_photo
+Router -> Auth: перевірка дозволів користувача
+Auth -> Router: доступ дозволено
+
+Router -> Camera: ініціалізація захоплення
+Camera -> Camera: налаштування параметрів
+Camera -> FS: збереження зображення
+FS -> Camera: підтвердження збереження
+Camera -> Router: шлях до файлу
+
+note right: Переходимо до спільної обробки
+
+== Варіант Б: Завантаження файлу ==
+User -> Web: вибрати файл та завантажити
+Web -> Router: POST /process_upload
+Router -> Auth: перевірка дозволів користувача
+Auth -> Router: доступ дозволено
+
+Router -> Upload: валідація типу файлу
+Upload -> Upload: генерація унікального імені
+Upload -> FS: збереження файлу
+FS -> Upload: підтвердження збереження
+Upload -> Router: шлях до файлу
+
+note right: Переходимо до спільної обробки
+
+== Спільна обробка зображення ==
+Router -> Enhancement: покращення зображення
+Enhancement -> Enhancement: застосування фільтрів
+Enhancement -> Router: покращене зображення
+
+Router -> OCR: розпізнавання тексту
+OCR -> OCR: обробка зображення
+OCR -> Router: сирий текст
+
+alt якщо текст знайдено
+    Router -> LLM: очищення та обробка тексту
+    LLM -> LLM: застосування промпту
+    LLM -> Router: оброблений текст
+else текст не знайдено
+    Router -> Router: встановити порожній результат
+end
+
+Router -> PhotoMgr: збереження метаданих фото
+PhotoMgr -> DB: створення запису фото
+DB -> PhotoMgr: ідентифікатор фото
+PhotoMgr -> Router: дані збереженого фото
+
+Router -> Web: результат обробки
+Web -> User: відображення результату
+
+== Створення документу з фотографій ==
+User -> Web: вибрати фотографії для документу
+Web -> User: форма створення документу
+User -> Web: ввести назву та підтвердити
+Web -> Router: POST /create_document з ідентифікаторами фото
+
+Router -> Auth: перевірка дозволів користувача
+Auth -> Router: доступ дозволено
+
+Router -> DocMgr: створення документу
+DocMgr -> PhotoMgr: отримання даних фотографій
+PhotoMgr -> DB: запит метаданих фото
+DB -> PhotoMgr: дані фотографій
+PhotoMgr -> DocMgr: повернення даних
+
+DocMgr -> DocMgr: об'єднання тексту з фотографій
+DocMgr -> DB: збереження документу
+DB -> DocMgr: ідентифікатор документу
+DocMgr -> Router: дані створеного документу
+
+Router -> Web: підтвердження створення
+Web -> User: повідомлення про успіх
+
+== Додаткова обробка документу через ШІ ==
+User -> Web: запит обробки документу через ШІ
+Web -> Router: POST з типом обробки
+Router -> Auth: перевірка дозволів користувача
+Auth -> Router: доступ дозволено
+
+Router -> DocMgr: отримання тексту документу
+DocMgr -> DB: запит тексту документу
+DB -> DocMgr: текст документу
+DocMgr -> Router: повернення тексту
+
+Router -> LLM: обробка через мовну модель
+LLM -> LLM: застосування обраного промпту
+LLM -> Router: результат обробки
+
+Router -> DocMgr: оновлення документу результатом
+DocMgr -> DB: збереження оновленого документу
+DB -> DocMgr: підтвердження оновлення
+DocMgr -> Router: підтвердження збереження
+
+Router -> Web: результат ШІ обробки
+Web -> User: відображення результату
+
+@enduml

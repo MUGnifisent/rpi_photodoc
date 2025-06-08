@@ -1,0 +1,59 @@
+@startuml
+!theme plain
+
+entity "users" {
+  * id : INTEGER <<PK>>
+  --
+  * username : TEXT <<UNIQUE>>
+  * password_hash : TEXT
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+entity "photos" {
+  * id : TEXT <<PK>>
+  --
+  * user_id : INTEGER <<FK>>
+  * image_filename : TEXT
+  original_ocr_text : TEXT
+  ai_cleaned_text : TEXT
+  edited_text : TEXT
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+entity "documents" {
+  * id : TEXT <<PK>>
+  --
+  * user_id : INTEGER <<FK>>
+  * name : TEXT
+  combined_text : TEXT
+  combined_text_generated_by_user : BOOLEAN
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+entity "document_photos" {
+  * document_id : TEXT <<PK,FK>>
+  * photo_id : TEXT <<PK,FK>>
+  --
+  * order_index : INTEGER
+}
+
+entity "user_settings" {
+  * user_id : INTEGER <<PK,FK>>
+  * category : TEXT <<PK>>
+  * setting_key : TEXT <<PK>>
+  --
+  * setting_value : TEXT
+  updated_at : TIMESTAMP
+}
+
+users ||--o{ photos : "користувач\nмає"
+users ||--o{ documents : "користувач\nстворює"
+users ||--o{ user_settings : "користувач\nналаштовує"
+
+documents ||--o{ document_photos : "документ\nвключає"
+photos ||--o{ document_photos : "фотографія\nвходить до"
+
+@enduml

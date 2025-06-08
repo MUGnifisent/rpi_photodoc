@@ -4,15 +4,7 @@
     margin: 3rem auto;
 }
 
-.camera-feed {
-    max-width: 100%;
-    height: auto;
-    border: 8px solid #ff6600;
-    margin-bottom: 1rem;
-    border-radius: 12px;
-    background-color: #232323;
-    min-height: 240px;
-}
+/* Removed duplicate .camera-feed rule - consolidated below */
 
 .file-label .file-name {
     border-width: 1px;
@@ -32,7 +24,6 @@
     position: relative;
     display: none;
     width: 100%;
-    text-align: center;
     justify-content: center;
     align-items: center;
 }
@@ -50,7 +41,9 @@
     border-radius: 12px;
     object-fit: contain;
     background: #232323;
-    border: none;
+    border: 8px solid #ff6600;
+    margin: 0 auto;
+    min-height: 240px;
     box-shadow: 
         0 0 0 1px rgba(128,128,128,0.3),
         0 0 0 2px rgba(128,128,128,0.2),

@@ -1,0 +1,111 @@
+@startuml
+!theme plain
+
+package "Веб-інтерфейс користувача" {
+  [Браузер користувача] as Browser
+  [HTML/CSS шаблони] as Templates
+  [JavaScript клієнт] as JSClient
+}
+
+package "Flask веб-сервер" {
+  [Головний додаток] as FlaskApp
+  [Маршрутизатор запитів] as RouteHandler
+  [Контролер автентифікації] as AuthController
+  [Система сесій] as SessionManager
+}
+
+package "Система обробки зображень" {
+  [Інтерфейс камери] as CameraInterface
+  [Модуль покращення зображень] as ImageEnhancer
+  [Препроцесор зображень] as ImagePreprocessor
+  [Менеджер завантажень] as UploadManager
+}
+
+package "Система розпізнавання тексту" {
+  [Координатор OCR] as OCRCoordinator
+  [Локальний OCR двигун] as LocalOCR
+  [Віддалений OCR клієнт] as RemoteOCR
+  [Постобробник тексту] as TextPostProcessor
+}
+
+package "Система обробки природної мови" {
+  [LLM координатор] as LLMCoordinator
+  [Менеджер промптів] as PromptManager
+  [Клієнт локальної LLM] as LocalLLMClient
+  [Форматувач результатів] as ResultFormatter
+}
+
+package "Система управління даними" {
+  [Менеджер фотографій] as PhotoManager
+  [Менеджер документів] as DocumentManager
+  [Менеджер користувачів] as UserManager
+  [SQLite база даних] as Database
+}
+
+package "Система налаштувань" {
+  [Контролер налаштувань] as SettingsController
+  [Системні налаштування] as SystemSettings
+  [Користувацькі налаштування] as UserSettings
+  [Конфігураційні файли] as ConfigFiles
+}
+
+package "Зовнішні сервіси" {
+  [Ollama LLM сервер] as OllamaServer
+  [Віддалений OCR сервер] as RemoteOCRServer
+  [Файлова система] as FileSystem
+}
+
+' Веб-інтерфейс
+Browser --> Templates : запит сторінки
+Browser --> JSClient : користувацька взаємодія
+JSClient --> RouteHandler : HTTP запити
+
+' Flask веб-сервер
+FlaskApp --> RouteHandler : реєстрація маршрутів
+RouteHandler --> AuthController : перевірка автентифікації
+AuthController --> SessionManager : управління сесіями
+RouteHandler --> CameraInterface : команди камери
+RouteHandler --> OCRCoordinator : запит на OCR
+RouteHandler --> LLMCoordinator : обробка тексту
+
+' Обробка зображень
+CameraInterface --> ImageEnhancer : сире зображення
+ImageEnhancer --> ImagePreprocessor : покращене зображення
+UploadManager --> ImagePreprocessor : завантажені файли
+ImagePreprocessor --> OCRCoordinator : підготовлене зображення
+
+' Розпізнавання тексту
+OCRCoordinator --> LocalOCR : локальна обробка
+OCRCoordinator --> RemoteOCR : віддалена обробка
+LocalOCR --> TextPostProcessor : сирий текст
+RemoteOCR --> TextPostProcessor : сирий текст
+RemoteOCR --> RemoteOCRServer : HTTP запит
+
+' Обробка природної мови
+TextPostProcessor --> LLMCoordinator : очищений текст
+LLMCoordinator --> PromptManager : отримання промптів
+LLMCoordinator --> LocalLLMClient : запит до моделі
+LocalLLMClient --> OllamaServer : HTTP запит
+LocalLLMClient --> ResultFormatter : відповідь моделі
+
+' Управління даними
+RouteHandler --> PhotoManager : операції з фото
+RouteHandler --> DocumentManager : операції з документами
+RouteHandler --> UserManager : операції з користувачами
+PhotoManager --> Database : збереження метаданих
+DocumentManager --> Database : зв'язки документів
+UserManager --> Database : дані користувачів
+PhotoManager --> FileSystem : збереження файлів
+
+' Система налаштувань
+RouteHandler --> SettingsController : запити налаштувань
+SettingsController --> SystemSettings : глобальні параметри
+SettingsController --> UserSettings : персональні параметри
+SettingsController --> ConfigFiles : збереження конфігурації
+SystemSettings --> ConfigFiles : читання YAML
+UserSettings --> Database : збереження в БД
+
+' Зчитування промптів
+PromptManager --> ConfigFiles : текстові промпти
+
+@enduml
