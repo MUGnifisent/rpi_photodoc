@@ -1,11 +1,10 @@
 import os
-import yaml
 import logging
 from flask import Flask, send_from_directory
 from flask_login import LoginManager, login_required
 from dotenv import load_dotenv
 from routes import main_bp # Changed to absolute import
-from settings_routes import settings_bp, load_settings as load_app_settings, get_config_path, PROMPTS_DIR_NAME, DEFAULT_PROMPT_KEYS, get_prompts_path # Changed to absolute import
+from settings_routes import settings_bp, load_settings as load_app_settings
 from datetime import datetime
 from models import User # This is the primary import for models
 import database
@@ -78,8 +77,6 @@ app.register_blueprint(settings_bp) # Registered settings blueprint
 
 # Initialize database with Flask app
 database.init_app(app)
-
-# Initialize DocumentManager
 
 # Route to serve uploaded files
 @app.route('/uploads/<filename>')
